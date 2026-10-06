@@ -11,11 +11,12 @@ function recorder() {
   return { sent, sendMessage: (text, chan) => sent.push([text, chan]) };
 }
 
-test("sendLines sends one message per non-empty line", () => {
+test("sendLines sends one message per line and one spacer per blank run", () => {
   const client = recorder();
-  sendLines(client, "chan", "a\n\n b \nc  ");
+  sendLines(client, "chan", "a\n\n\n b \nc  \n\n");
   assert.deepEqual(client.sent, [
     ["a", "chan"],
+    ["\u00a0", "chan"],
     [" b", "chan"],
     ["c", "chan"],
   ]);
