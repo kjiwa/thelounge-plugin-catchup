@@ -101,3 +101,18 @@ test("function is a known key", () => {
   );
   assert.deepEqual(unknownKeys, []);
 });
+
+test("timeZone is kept when valid and omitted when absent", () => {
+  const raw = { provider: "bedrock", model: "m", region: "r" };
+  const set = validateConfig({ ...raw, timeZone: "America/Los_Angeles" }, {});
+  assert.equal(set.config.timeZone, "America/Los_Angeles");
+  assert.deepEqual(set.unknownKeys, []);
+  assert.equal("timeZone" in validateConfig(raw, {}).config, false);
+});
+
+for (const timeZone of ["Mars/Base", "", 5]) {
+  test(`rejects timeZone ${JSON.stringify(timeZone)}`, () => {
+    const raw = { provider: "bedrock", model: "m", region: "r", timeZone };
+    assert.throws(() => validateConfig(raw, {}), /timeZone/);
+  });
+}

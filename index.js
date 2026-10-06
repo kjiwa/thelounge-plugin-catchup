@@ -10,7 +10,7 @@ const { invokeGateway } = require("./lib/gateway.js");
 const { createModel } = require("./lib/model.js");
 const { buildPrompt, gapsSection, limitInput } = require("./lib/prompt.js");
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
-const { parseWindow } = require("./lib/window.js");
+const { parseWindow, helpText } = require("./lib/window.js");
 
 // client.name is TheLounge's internal user name and the only way to reach the
 // per-user log file; the public client API does not expose it.
@@ -27,6 +27,7 @@ function loadLines(db, { network, chan, args, config }) {
   const window = parseWindow(args, {
     nowMs: Date.now(),
     maxWindowHours: config.maxWindowHours,
+    timeZone: config.timeZone,
     findLastOwnMs: (floorMs) =>
       findLastOwnMs(
         db,
@@ -48,6 +49,10 @@ async function complete(config, request) {
 
 async function summarize(deps, publicClient, target, args) {
   const { network, chan } = target;
+  if (args[0] === "help") {
+    sendLines(publicClient, chan, helpText(deps.config?.timeZone));
+    return;
+  }
   if (deps.configError) {
     throw deps.configError;
   }
@@ -70,6 +75,7 @@ async function summarize(deps, publicClient, target, args) {
       channel: chan.name,
       nick: network.nick,
       focusNick: loaded.window.nick,
+      timeZone: deps.config.timeZone,
     }),
   );
   const header = summaryHeader({
@@ -78,11 +84,12 @@ async function summarize(deps, publicClient, target, args) {
     fromMs: loaded.window.fromMs,
     toMs: loaded.window.toMs,
     truncated: limited.truncated,
+    timeZone: deps.config.timeZone,
   });
   sendLines(
     publicClient,
     chan,
-    `${header}\n${text}\n\n${gapsSection(limited.lines)}`,
+    `${header}\n${text}\n\n${gapsSection(limited.lines, deps.config.timeZone)}`,
   );
 }
 

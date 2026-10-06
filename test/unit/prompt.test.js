@@ -96,3 +96,24 @@ test("gapsSection lists each gap over an hour with its times", () => {
 test("gapsSection says None. when the log has no gap", () => {
   assert.equal(gapsSection(lines.slice(0, 2)), "GAPS\nNone.");
 });
+
+const UTC_NOON = Date.UTC(2026, 0, 1, 12, 0);
+const utcLines = [{ ...lines[0], time: UTC_NOON }];
+
+test("transcript lines are stamped in the configured zone", () => {
+  const { prompt } = buildPrompt({
+    lines: utcLines,
+    channel: "#fixture",
+    nick: "alice",
+    timeZone: "America/Los_Angeles",
+  });
+  assert.match(prompt, /\[2026-01-01 04:00\] <bob> first line/);
+});
+
+test("gapsSection stamps gaps in the configured zone", () => {
+  const gapped = [utcLines[0], { ...lines[2], time: UTC_NOON + 2 * 3600000 }];
+  assert.match(
+    gapsSection(gapped, "America/Los_Angeles"),
+    /- 2026-01-01 04:00 to 2026-01-01 06:00, 120 minutes of silence/,
+  );
+});

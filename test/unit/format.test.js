@@ -49,3 +49,15 @@ test("the header notes truncation", () => {
   );
   assert.match(summaryHeader({ ...base, truncated: true }), /too large/);
 });
+
+test("the header stamps both ends in the configured zone", () => {
+  const header = summaryHeader({
+    channel: "#c",
+    count: 3,
+    fromMs: Date.UTC(2026, 0, 1, 8),
+    toMs: Date.UTC(2026, 0, 2, 8),
+    truncated: false,
+    timeZone: "America/Los_Angeles",
+  });
+  assert.match(header, /2026-01-01 00:00 to 2026-01-02 00:00/);
+});
