@@ -22,9 +22,23 @@ removes a shipped file.
 
 ## Releasing
 
-Set the version with `npm version --no-git-tag-version <version>`, add a
-`## <version>` section to `CHANGELOG.md`, and open a PR. Release tooling lands
-separately.
+Add a `## <version>` section to `CHANGELOG.md` in a PR and merge it, then run
+from a clean, up-to-date `main`:
+
+```sh
+sh scripts/release.sh [--dry-run] <version>
+```
+
+The script bumps `package.json` and `package-lock.json` through a squash-merged
+PR, waits for checks, tags the merge commit, and creates the GitHub release with
+the matching CHANGELOG section as its notes. Publishing the release triggers
+`.github/workflows/publish.yml`, which verifies the tag and runs
+`npm publish` through npm trusted publishing (no token).
+
+Trusted publishing can only be configured on a package that exists. Publish the
+first version by hand with `npm publish` from a clean checkout of its tag, then
+on npmjs.com add a trusted publisher for this repository with workflow filename
+`publish.yml`. Later releases need no credentials.
 
 ## Scope
 
