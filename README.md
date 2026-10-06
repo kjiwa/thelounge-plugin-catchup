@@ -2,8 +2,6 @@
 
 Summarizes what you missed in IRC channels on The Lounge, on demand and only in your own client, using the LLM you configure.
 
-Status: scaffolding. The package loads in The Lounge but registers no command yet; `/summarize` arrives in 0.1. Configuration and Credentials describe the 0.1 behavior.
-
 ## Install
 
 ```sh
@@ -17,21 +15,38 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 ```
 /summarize
 /summarize 6h
+/summarize today bob
 ```
+
+## Usage
+
+`/summarize [window] [nick]`
+
+| Window        | Range                                                                          |
+| ------------- | ------------------------------------------------------------------------------ |
+| `since-last`  | From your own last message in the channel (default), at most `maxWindowHours`. |
+| `24h`, `6h`   | The last N hours (any `Nh`).                                                   |
+| `today`       | Since midnight.                                                                |
+| `since HH:MM` | Since that time today, or yesterday if it is still ahead.                      |
+
+`today` and `since HH:MM` use the time zone of the server running The Lounge. A nick asks the model to focus on what that person said. If the window holds more than 200,000 characters the newest part is summarized and the reply says so. Timestamp gaps over 60 minutes are reported in the summary.
 
 ## Configuration
 
-`config.json` in the plugin's persistent storage directory (`THELOUNGE_HOME/packages/thelounge-plugin-catchup/`):
+`config.json` in the plugin's persistent storage directory (`THELOUNGE_HOME/packages/thelounge-plugin-catchup/`), read at server start:
 
-| Key        | Meaning                                      |
-| ---------- | -------------------------------------------- |
-| `provider` | `bedrock`. `anthropic` is planned.           |
-| `model`    | Provider model or inference profile ID.      |
-| `region`   | Provider region. Falls back to `AWS_REGION`. |
+| Key              | Meaning                                                              |
+| ---------------- | -------------------------------------------------------------------- |
+| `provider`       | Required. `bedrock` or `anthropic`.                                  |
+| `model`          | Required. Bedrock model or inference profile ID, or Anthropic model. |
+| `region`         | Bedrock only. Falls back to `AWS_REGION`.                            |
+| `maxWindowHours` | Optional, default 24. Cap for the `since-last` window.               |
 
-Unknown keys are rejected with a warning.
+Unknown keys are ignored with a warning in the server log. Never put a key in `config.json`.
 
 ## Credentials
+
+### Bedrock
 
 The plugin passes the AI SDK a model object built from the AWS SDK default credential chain, so any source that chain supports works.
 
@@ -41,7 +56,9 @@ The plugin passes the AI SDK a model object built from the AWS SDK default crede
 
 When `AWS_BEARER_TOKEN_BEDROCK` is set it takes precedence over the credential chain.
 
-The Anthropic provider (API key) is planned and not yet available.
+### Anthropic
+
+Set `ANTHROPIC_API_KEY` in the environment of The Lounge process. The plugin refuses to start the provider without it.
 
 ## Scope
 
@@ -57,6 +74,9 @@ No published The Lounge plugin summarizes channel history (npm keyword `theloung
 - The Lounge 4.5.2 or newer in the 4.x line.
 - Requires message logging to sqlite (`messageStorage: ["sqlite"]` and a user with logs enabled). Text-only logging is not read.
 - The plugin API has no hook for incoming messages, so the plugin reads the sqlite log on demand.
+- Loading the AI SDK adds about 35 MB RSS on first use (measured on Node 24).
+- Bedrock is not reachable over IPv6 in the regions checked; an IPv6-only host needs the `anthropic` provider or IPv4 egress.
+- Changes to `config.json` need a restart.
 - Lobby and server-window messages are never logged by The Lounge and cannot be summarized.
 
 ## Development

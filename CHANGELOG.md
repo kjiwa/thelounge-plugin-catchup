@@ -2,5 +2,4 @@
 
 ## Unreleased
 
-Initial scaffolding: package metadata, CI, and a plugin entry point that does
-not register any command yet.
+Adds `/summarize [since-last|Nh|today|since HH:MM] [nick]`, summarizing the channel log of the requesting user with the configured `bedrock` or `anthropic` provider. The prompt wording is provisional.

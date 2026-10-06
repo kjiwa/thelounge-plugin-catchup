@@ -7,7 +7,7 @@ const { DatabaseSync } = require("node:sqlite");
 const USER = "alice";
 const NETWORK_UUID = "00000000-0000-4000-8000-000000000001";
 const CHANNEL = "#fixture";
-const BASE_TIME = Date.UTC(2026, 0, 1, 12, 0, 0);
+const BASE_TIME = Date.now() - 3 * 3600000;
 const MESSAGES = [
   ["bob", "hello from the fixture"],
   ["carol", "synthetic line two"],

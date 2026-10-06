@@ -21,6 +21,7 @@
   ],
   "files": [
     "index.js",
+    "lib/",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
@@ -44,5 +45,11 @@
     "prettier": "3.9.9",
     "socket.io-client": "4.8.4",
     "thelounge": "4.5.2"
+  },
+  "dependencies": {
+    "@ai-sdk/amazon-bedrock": "5.0.106",
+    "@ai-sdk/anthropic": "4.0.72",
+    "@aws-sdk/credential-providers": "3.1146.0",
+    "ai": "7.0.128"
   }
 }

@@ -1,5 +1,107 @@
 "use strict";
 
+const path = require("node:path");
+
+const { loadConfig } = require("./lib/config.js");
+const { UserError } = require("./lib/errors.js");
+const { sendLines, sendError, summaryHeader } = require("./lib/format.js");
+const { generate } = require("./lib/generate.js");
+const { createModel } = require("./lib/model.js");
+const { buildPrompt, limitInput } = require("./lib/prompt.js");
+const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
+const { parseWindow } = require("./lib/window.js");
+
+// client.name is TheLounge's internal user name and the only way to reach the
+// per-user log file; the public client API does not expose it.
+function userLogName(publicClient) {
+  const name = publicClient.client?.name;
+  if (typeof name !== "string" || name === "") {
+    throw new UserError("Cannot determine your user name to locate the log");
+  }
+  return name;
+}
+
+function loadLines(db, { network, chan, args, config }) {
+  const query = { networkUuid: network.uuid, channel: chan.name };
+  const window = parseWindow(args, {
+    nowMs: Date.now(),
+    maxWindowHours: config.maxWindowHours,
+    findLastOwnMs: (floorMs) =>
+      findLastOwnMs(
+        db,
+        { ...query, fromMs: floorMs, toMs: Date.now() },
+        network.nick,
+      ),
+  });
+  const lines = fetchLines(db, { ...query, ...window });
+  return { window, lines };
+}
+
+async function summarize(deps, publicClient, target, args) {
+  const { network, chan } = target;
+  if (deps.configError) {
+    throw deps.configError;
+  }
+  const db = openLog(deps.home, userLogName(publicClient));
+  let loaded;
+  try {
+    loaded = loadLines(db, { network, chan, args, config: deps.config });
+  } finally {
+    db.close();
+  }
+  if (loaded.lines.length === 0) {
+    sendLines(publicClient, chan, "No messages in that window.");
+    return;
+  }
+  const limited = limitInput(loaded.lines);
+  const model = await createModel(deps.config);
+  const text = await generate(
+    model,
+    buildPrompt({
+      lines: limited.lines,
+      channel: chan.name,
+      nick: network.nick,
+      focusNick: loaded.window.nick,
+    }),
+  );
+  const header = summaryHeader({
+    channel: chan.name,
+    count: limited.lines.length,
+    fromMs: loaded.window.fromMs,
+    toMs: loaded.window.toMs,
+    truncated: limited.truncated,
+  });
+  sendLines(publicClient, chan, `${header}\n${text}`);
+}
+
+function readSettings(api) {
+  const dir = api.Config.getPersistentStorageDir();
+  const home = path.dirname(path.dirname(dir));
+  try {
+    const { config, unknownKeys } = loadConfig(dir, process.env);
+    unknownKeys.forEach((key) =>
+      api.Logger.warn(`Unknown config key "${key}" ignored`),
+    );
+    return { home, config };
+  } catch (err) {
+    if (!(err instanceof UserError)) {
+      throw err;
+    }
+    api.Logger.error(err.message);
+    return { home, configError: err };
+  }
+}
+
 module.exports = {
-  onServerStart() {},
+  onServerStart(api) {
+    const deps = readSettings(api);
+    api.Commands.add("summarize", {
+      allowDisconnected: true,
+      input(publicClient, target, _command, args) {
+        summarize(deps, publicClient, target, args).catch((err) =>
+          sendError(publicClient, target.chan, err, api.Logger),
+        );
+      },
+    });
+  },
 };
