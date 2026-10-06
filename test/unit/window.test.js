@@ -23,6 +23,7 @@ const cases = [
   ],
   ["", ctx(undefined), { fromMs: NOW - 24 * HOUR, nick: undefined }],
   ["24h", ctx(), { fromMs: NOW - 24 * HOUR, nick: undefined }],
+  ["9999h", ctx(), { fromMs: NOW - 24 * HOUR, nick: undefined }],
   ["6h bob", ctx(), { fromMs: NOW - 6 * HOUR, nick: "bob" }],
   ["bob", ctx(NOW - HOUR), { fromMs: NOW - HOUR, nick: "bob" }],
   [

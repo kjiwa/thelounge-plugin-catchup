@@ -40,7 +40,7 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 | `provider`       | Required. `bedrock` or `anthropic`.                                  |
 | `model`          | Required. Bedrock model or inference profile ID, or Anthropic model. |
 | `region`         | Bedrock only. Falls back to `AWS_REGION`.                            |
-| `maxWindowHours` | Optional, default 24. Cap for the `since-last` window.               |
+| `maxWindowHours` | Optional, default 24. Cap for every window, explicit ones included.  |
 
 Unknown keys are ignored with a warning in the server log. Never put a key in `config.json`.
 

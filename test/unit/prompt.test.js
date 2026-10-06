@@ -71,6 +71,14 @@ test("limitInput keeps the newest lines when over the cap", () => {
   assert.ok(result.lines.length < lines.length);
 });
 
+test("limitInput truncates a single line larger than the cap", () => {
+  const huge = [{ time: 1, type: "message", nick: "a", text: "x".repeat(500) }];
+  const result = limitInput(huge, 100);
+  assert.equal(result.lines.length, 1);
+  assert.ok(result.lines[0].text.length < 100);
+  assert.equal(result.truncated, true);
+});
+
 test("limitInput leaves small inputs alone", () => {
   const result = limitInput(lines);
   assert.equal(result.truncated, false);

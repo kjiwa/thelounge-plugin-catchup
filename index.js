@@ -98,9 +98,13 @@ module.exports = {
     api.Commands.add("summarize", {
       allowDisconnected: true,
       input(publicClient, target, _command, args) {
-        summarize(deps, publicClient, target, args).catch((err) =>
-          sendError(publicClient, target.chan, err, api.Logger),
-        );
+        summarize(deps, publicClient, target, args).catch((err) => {
+          try {
+            sendError(publicClient, target.chan, err, api.Logger);
+          } catch (sendErr) {
+            api.Logger.error(`Could not report error: ${sendErr.message}`);
+          }
+        });
       },
     });
   },
