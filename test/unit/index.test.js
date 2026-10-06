@@ -3,7 +3,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
+const path = require("node:path");
+
 const plugin = require("../../index.js");
+
+const MISSING_DIR = path.join(path.sep, "nonexistent", "packages", "pkg");
 
 function register(dir) {
   const commands = {};
@@ -20,12 +24,12 @@ function register(dir) {
 }
 
 test("registers /summarize usable while disconnected", () => {
-  const { commands } = register("/nonexistent/home/packages/pkg");
+  const { commands } = register(MISSING_DIR);
   assert.equal(commands.summarize.allowDisconnected, true);
 });
 
 test("a missing config yields one error line and no crash", async () => {
-  const { commands, logs } = register("/nonexistent/home/packages/pkg");
+  const { commands, logs } = register(MISSING_DIR);
   const sent = [];
   const client = { sendMessage: (text) => sent.push(text) };
   commands.summarize.input(client, { network: {}, chan: {} }, "summarize", []);
