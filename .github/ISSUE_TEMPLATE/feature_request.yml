@@ -1,0 +1,18 @@
+name: Feature request
+description: Propose a change to thelounge-plugin-catchup's behavior.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What you're trying to do that the plugin doesn't support today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: What you'd like to see, and why it fits the plugin's scope (on-demand catch-up in your own client, nothing stored, providers only through AI SDK packages).
+    validations:
+      required: true
