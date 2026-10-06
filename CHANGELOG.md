@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 Adds `/summarize YYYY-MM-DD` for one calendar day (not capped by `maxWindowHours`), `/summarize help`, and an optional `timeZone` config key that sets day boundaries and every printed timestamp. Without it the server zone applies, as before.
 
