@@ -84,12 +84,17 @@ async function summarize(deps, publicClient, target, args) {
     fromMs: loaded.window.fromMs,
     toMs: loaded.window.toMs,
     truncated: limited.truncated,
+    capped: loaded.window.capped,
     timeZone: deps.config.timeZone,
   });
+  const gapBounds = {
+    fromMs: limited.truncated ? undefined : loaded.window.fromMs,
+    toMs: loaded.window.toMs,
+  };
   sendLines(
     publicClient,
     chan,
-    `${header}\n${text}\n\n${gapsSection(limited.lines, deps.config.timeZone)}`,
+    `${header}\n${text}\n\n${gapsSection(limited.lines, deps.config.timeZone, gapBounds)}`,
   );
 }
 

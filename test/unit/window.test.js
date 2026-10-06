@@ -134,3 +134,15 @@ test("help text names the usage and the zone in effect", () => {
 test("parseWindow keeps a digit-dash nick as a nick", () => {
   assert.equal(parseWindow(["1-2-3"], ctx(NOW - HOUR)).nick, "1-2-3");
 });
+
+test("an explicit spec raised to the floor is capped; others are not", () => {
+  assert.equal(parseWindow(["48h"], ctx()).capped, true);
+  assert.equal(parseWindow(["9999h", "bob"], ctx()).capped, true);
+  assert.equal(parseWindow(["24h"], ctx()).capped, false);
+  assert.equal(parseWindow(["6h"], ctx()).capped, false);
+});
+
+test("the since-last floor is its definition, never a cap", () => {
+  assert.equal(parseWindow([], ctx(NOW - 99 * HOUR)).capped, false);
+  assert.equal(parseWindow([], ctx(undefined)).capped, false);
+});
