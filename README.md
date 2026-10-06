@@ -35,12 +35,13 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 
 `config.json` in the plugin's persistent storage directory (`THELOUNGE_HOME/packages/thelounge-plugin-catchup/`), read at server start:
 
-| Key              | Meaning                                                              |
-| ---------------- | -------------------------------------------------------------------- |
-| `provider`       | Required. `bedrock` or `anthropic`.                                  |
-| `model`          | Required. Bedrock model or inference profile ID, or Anthropic model. |
-| `region`         | Bedrock only. Falls back to `AWS_REGION`.                            |
-| `maxWindowHours` | Optional, default 24. Cap for every window, explicit ones included.  |
+| Key              | Meaning                                                                |
+| ---------------- | ---------------------------------------------------------------------- |
+| `provider`       | Required. `bedrock`, `anthropic` or `lambda`.                          |
+| `model`          | Required for `bedrock` and `anthropic`: model or inference profile ID. |
+| `function`       | Required for `lambda`. Function name or ARN.                           |
+| `region`         | `bedrock` and `lambda`. Falls back to `AWS_REGION`.                    |
+| `maxWindowHours` | Optional, default 24. Cap for every window, explicit ones included.    |
 
 Unknown keys are ignored with a warning in the server log. Never put a key in `config.json`.
 
@@ -55,6 +56,10 @@ The plugin passes the AI SDK a model object built from the AWS SDK default crede
 - Off AWS, simplest: a long-term Bedrock API key in `AWS_BEARER_TOKEN_BEDROCK`. AWS calls long-term keys exploration-only. Short-term keys expire within 12 hours and cannot be refreshed through an environment variable.
 
 When `AWS_BEARER_TOKEN_BEDROCK` is set it takes precedence over the credential chain.
+
+### Lambda
+
+The plugin invokes your gateway function with `{"system": "...", "prompt": "..."}` and expects `{"text": "..."}` back. The function holds the model choice and the Bedrock permissions, so The Lounge host needs only `lambda:InvokeFunction` on that function. Credentials come from the same AWS SDK default chain as Bedrock. The client uses the dual-stack endpoint (`lambda.<region>.api.aws`), so an IPv6-only host works. Setting `AWS_ENDPOINT_URL_LAMBDA` or `AWS_ENDPOINT_URL` replaces it, because the SDK rejects dual-stack with a custom endpoint. A function error is logged to the server log and never shown in the channel. The AI SDK is not loaded for this provider.
 
 ### Anthropic
 
@@ -74,8 +79,8 @@ No published The Lounge plugin summarizes channel history (npm keyword `theloung
 - The Lounge 4.5.2 or newer in the 4.x line.
 - Requires message logging to sqlite (`messageStorage: ["sqlite"]` and a user with logs enabled). Text-only logging is not read.
 - The plugin API has no hook for incoming messages, so the plugin reads the sqlite log on demand.
-- Loading the AI SDK adds about 35 MB RSS on first use (measured on Node 24).
-- Bedrock is not reachable over IPv6 in the regions checked; an IPv6-only host needs the `anthropic` provider or IPv4 egress.
+- Loading the AI SDK adds about 35 MB RSS on first use (measured on Node 24). Loading the Lambda client adds about 28 MB (same measurement).
+- Bedrock is not reachable over IPv6 in the regions checked; an IPv6-only host needs the `lambda` provider, the `anthropic` provider or IPv4 egress.
 - Changes to `config.json` need a restart.
 - Lobby and server-window messages are never logged by The Lounge and cannot be summarized.
 

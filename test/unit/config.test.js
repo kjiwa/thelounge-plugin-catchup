@@ -59,3 +59,45 @@ for (const [raw, pattern] of invalid) {
     assert.throws(() => validateConfig(raw, {}), pattern);
   });
 }
+
+test("lambda needs a function and a region, and takes no model", () => {
+  const { config, unknownKeys } = validateConfig(
+    { provider: "lambda", function: "gw" },
+    { AWS_REGION: "us-west-2" },
+  );
+  assert.deepEqual(config, {
+    provider: "lambda",
+    function: "gw",
+    region: "us-west-2",
+    maxWindowHours: 24,
+  });
+  assert.deepEqual(unknownKeys, []);
+  const { config: explicit } = validateConfig(
+    {
+      provider: "lambda",
+      function: "arn:aws:lambda:us-west-1:123456789012:function:gw",
+      region: "us-west-1",
+    },
+    {},
+  );
+  assert.equal(explicit.region, "us-west-1");
+});
+
+test("lambda rejects a missing function or region", () => {
+  assert.throws(
+    () => validateConfig({ provider: "lambda", region: "r" }, {}),
+    /function/,
+  );
+  assert.throws(
+    () => validateConfig({ provider: "lambda", function: "gw" }, {}),
+    /region/,
+  );
+});
+
+test("function is a known key", () => {
+  const { unknownKeys } = validateConfig(
+    { provider: "lambda", function: "gw", region: "r", model: "m" },
+    {},
+  );
+  assert.deepEqual(unknownKeys, []);
+});
