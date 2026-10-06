@@ -5,6 +5,8 @@ const test = require("node:test");
 
 const { buildPrompt, limitInput, gapsSection } = require("../../lib/prompt.js");
 
+const MIN = 60000;
+
 const T0 = new Date(2026, 0, 1, 12, 0).getTime();
 const lines = [
   {
@@ -116,4 +118,47 @@ test("gapsSection stamps gaps in the configured zone", () => {
     gapsSection(gapped, "America/Los_Angeles"),
     /- 2026-01-01 04:00 to 2026-01-01 06:00, 120 minutes of silence/,
   );
+});
+
+test("gapsSection counts silence before the first and after the last line", () => {
+  const one = [{ ...lines[0], time: T0 }];
+  const text = gapsSection(one, undefined, {
+    fromMs: T0 - 120 * MIN,
+    toMs: T0 + 90 * MIN,
+  });
+  assert.match(
+    text,
+    /^GAPS\n- .*, 120 minutes of silence\n- .*, 90 minutes of silence$/,
+  );
+});
+
+test("gapsSection lists the five longest gaps in time order", () => {
+  const minutes = [70, 200, 80, 300, 90, 100, 400, 110];
+  let t = T0;
+  const spaced = [{ ...lines[0], time: t }];
+  for (const m of minutes) {
+    t += m * MIN;
+    spaced.push({ ...lines[0], time: t });
+  }
+  const listed = gapsSection(spaced)
+    .split("\n")
+    .map((line) => /, (\d+) minutes/.exec(line)?.[1]);
+  assert.deepEqual(listed.slice(1, 6), ["200", "300", "100", "400", "110"]);
+  assert.match(gapsSection(spaced), /\n- 3 shorter gaps not listed$/);
+});
+
+test("the log marks gaps between lines but not at the window edges", () => {
+  const { prompt } = buildPrompt({
+    lines: [{ ...lines[0], time: T0 }],
+    channel: "#fixture",
+    nick: "alice",
+  });
+  assert.doesNotMatch(prompt, /-- gap/);
+});
+
+test("the system prompt requires a gist for every topic", () => {
+  const { system } = buildPrompt({ lines, channel: "#c", nick: "a" });
+  assert.match(system, /Every topic must have a gist line/);
+  assert.match(system, /Open: a question nobody answered/);
+  assert.match(system, /own topic/);
 });

@@ -61,3 +61,22 @@ test("the header stamps both ends in the configured zone", () => {
   });
   assert.match(header, /2026-01-01 00:00 to 2026-01-02 00:00/);
 });
+
+test("the header counts 1 line in the singular", () => {
+  const base = { channel: "#c", fromMs: 0, toMs: 60000, truncated: false };
+  assert.match(summaryHeader({ ...base, count: 1 }), /\(1 line\)/);
+  assert.match(summaryHeader({ ...base, count: 2 }), /\(2 lines\)/);
+});
+
+test("the header notes a capped window", () => {
+  const base = { channel: "#c", count: 3, truncated: false, fromMs: 0 };
+  const toMs = 24 * 3600000;
+  assert.match(
+    summaryHeader({ ...base, toMs, capped: true }),
+    /\(3 lines; capped at 24h, the maxWindowHours limit\)/,
+  );
+  assert.doesNotMatch(
+    summaryHeader({ ...base, toMs, capped: false }),
+    /capped/,
+  );
+});
