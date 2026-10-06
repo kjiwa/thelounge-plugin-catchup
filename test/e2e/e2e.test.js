@@ -27,10 +27,64 @@ function freePort() {
   });
 }
 
+const STUB_TEXT = "Stub summary: bob greeted the fixture channel.";
+const MODEL_ID = "stub.model-v1:0";
+
 function startBedrockStub() {
   return new Promise((resolve) => {
-    const server = http.createServer((_req, res) => res.writeHead(404).end());
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        server.requests.push({ url: req.url, body });
+        if (
+          req.method !== "POST" ||
+          req.url !== `/model/${encodeURIComponent(MODEL_ID)}/converse`
+        ) {
+          res.writeHead(404).end();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" }).end(
+          JSON.stringify({
+            output: {
+              message: { role: "assistant", content: [{ text: STUB_TEXT }] },
+            },
+            stopReason: "end_turn",
+            usage: { inputTokens: 10, outputTokens: 10, totalTokens: 20 },
+          }),
+        );
+      });
+    });
+    server.requests = [];
     server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
+function writePluginConfig(home) {
+  const dir = path.join(home, "packages", PACKAGE);
+  fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      provider: "bedrock",
+      model: MODEL_ID,
+      region: "us-west-2",
+    }),
+  );
+}
+
+function waitForMessage(socket, predicate) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error("no matching msg event within 30s")),
+      30000,
+    );
+    socket.on("msg", (data) => {
+      if (predicate(data)) {
+        clearTimeout(timer);
+        resolve(data);
+      }
+    });
   });
 }
 
@@ -104,11 +158,14 @@ function login(port) {
       socket.close();
       settle(reject, new Error("auth:failed"));
     });
-    socket.on("init", (data) => settle(resolve, { socket, init: data }));
+    const commands = new Promise((done) => socket.once("commands", done));
+    socket.on("init", (data) =>
+      settle(resolve, { socket, init: data, commands }),
+    );
   });
 }
 
-test("The Lounge loads the packed plugin and the fixture log is readable", async (t) => {
+test("The Lounge loads the plugin and /summarize relays the stubbed model reply", async (t) => {
   const stub = await startBedrockStub();
   const { home, env } = createHome();
   let server;
@@ -125,6 +182,7 @@ test("The Lounge loads the packed plugin and the fixture log is readable", async
   });
 
   installTarball(home, env);
+  writePluginConfig(home);
   const port = await freePort();
   fixture.writeConfig(home, port);
 
@@ -147,6 +205,20 @@ test("The Lounge loads the packed plugin and the fixture log is readable", async
   assert.match(output, new RegExp(`Package ${PACKAGE} v[\\d.]+ loaded`));
   assert.doesNotMatch(output, /could not be loaded/);
   assert.equal(session.init.networks.length, 1);
+
+  assert.ok((await session.commands).includes("/summarize"));
+
+  const chan = session.init.networks[0].channels.find(
+    (c) => c.name === fixture.CHANNEL,
+  );
+  const reply = waitForMessage(
+    session.socket,
+    ({ chan: id, msg }) => id === chan.id && msg.text.includes(STUB_TEXT),
+  );
+  session.socket.emit("input", { target: chan.id, text: "/summarize 24h" });
+  await reply;
+  const call = stub.requests.find((r) => r.url.endsWith("/converse"));
+  assert.ok(call.body.includes("hello from the fixture"));
 
   const db = new DatabaseSync(
     path.join(home, "logs", `${fixture.USER}.sqlite3`),
