@@ -1,0 +1,31 @@
+name: Bug report
+description: Something in thelounge-plugin-catchup doesn't work as documented.
+labels: [bug]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you ran, what you expected, and what you got instead. Do not paste channel logs you would not post publicly.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Plugin version
+      description: Output of `npm ls thelounge-plugin-catchup` in your packages directory.
+    validations:
+      required: true
+  - type: input
+    id: thelounge
+    attributes:
+      label: The Lounge version
+    validations:
+      required: true
+  - type: input
+    id: node
+    attributes:
+      label: Node.js version
+      description: Output of `node --version`.
+    validations:
+      required: true
