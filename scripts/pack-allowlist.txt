@@ -1,4 +1,5 @@
 index.js
+lib/clock.js
 lib/config.js
 lib/errors.js
 lib/format.js
