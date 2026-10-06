@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0
 
 The header notes when `maxWindowHours` capped an `Nh` window and says `1 line` in the singular. GAPS counts silence at the window edges, lists the 5 longest gaps, and reports the rest as `N shorter gaps not listed`; a truncated input omits the window-start gap. The prompt requires a gist for every topic and a separate topic per subject.
 
