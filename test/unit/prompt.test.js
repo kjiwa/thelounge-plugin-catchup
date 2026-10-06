@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildPrompt, limitInput } = require("../../lib/prompt.js");
+const { buildPrompt, limitInput, gapsSection } = require("../../lib/prompt.js");
 
 const T0 = new Date(2026, 0, 1, 12, 0).getTime();
 const lines = [
@@ -83,4 +83,16 @@ test("limitInput leaves small inputs alone", () => {
   const result = limitInput(lines);
   assert.equal(result.truncated, false);
   assert.equal(result.lines.length, lines.length);
+});
+
+test("gapsSection lists each gap over an hour with its times", () => {
+  const text = gapsSection(lines);
+  assert.match(
+    text,
+    /^GAPS\n- .* to .*, 61 minutes of silence\n- .*, 138 minutes of silence$/,
+  );
+});
+
+test("gapsSection says None. when the log has no gap", () => {
+  assert.equal(gapsSection(lines.slice(0, 2)), "GAPS\nNone.");
 });

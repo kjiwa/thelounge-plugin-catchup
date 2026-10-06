@@ -7,7 +7,7 @@ const { UserError } = require("./lib/errors.js");
 const { sendLines, sendError, summaryHeader } = require("./lib/format.js");
 const { generate } = require("./lib/generate.js");
 const { createModel } = require("./lib/model.js");
-const { buildPrompt, limitInput } = require("./lib/prompt.js");
+const { buildPrompt, gapsSection, limitInput } = require("./lib/prompt.js");
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
 const { parseWindow } = require("./lib/window.js");
 
@@ -71,7 +71,11 @@ async function summarize(deps, publicClient, target, args) {
     toMs: loaded.window.toMs,
     truncated: limited.truncated,
   });
-  sendLines(publicClient, chan, `${header}\n${text}`);
+  sendLines(
+    publicClient,
+    chan,
+    `${header}\n${text}\n\n${gapsSection(limited.lines)}`,
+  );
 }
 
 function readSettings(api) {
