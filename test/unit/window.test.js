@@ -3,7 +3,7 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { parseWindow } = require("../../lib/window.js");
+const { parseWindow, helpText } = require("../../lib/window.js");
 
 const HOUR = 3600000;
 const NOW = new Date(2026, 5, 15, 14, 30, 0).getTime();
@@ -57,3 +57,80 @@ for (const bad of ["0h", "since", "since 25:00", "since 9", "6h bob carol"]) {
     assert.throws(() => parseWindow(bad.split(" "), ctx()), /Usage/);
   });
 }
+
+const LA = "America/Los_Angeles";
+const laCtx = (nowMs) => ({
+  nowMs,
+  maxWindowHours: 24,
+  timeZone: LA,
+  findLastOwnMs: () => undefined,
+});
+const LA_NOW = Date.UTC(2026, 5, 15, 21, 30);
+const LA_MIDNIGHT = Date.UTC(2026, 5, 15, 7);
+
+test("today and since HH:MM follow the configured zone", () => {
+  assert.equal(parseWindow(["today"], laCtx(LA_NOW)).fromMs, LA_MIDNIGHT);
+  assert.equal(
+    parseWindow(["since", "09:05"], laCtx(LA_NOW)).fromMs,
+    Date.UTC(2026, 5, 15, 16, 5),
+  );
+  assert.equal(
+    parseWindow(["since", "23:00"], laCtx(LA_NOW)).fromMs,
+    Date.UTC(2026, 5, 15, 6),
+  );
+});
+
+test("a date window spans that calendar day in the zone", () => {
+  const got = parseWindow(["2026-06-10"], laCtx(LA_NOW));
+  assert.equal(got.fromMs, Date.UTC(2026, 5, 10, 7));
+  assert.equal(got.toMs, Date.UTC(2026, 5, 11, 7));
+  assert.equal(got.nick, undefined);
+});
+
+test("a date window takes a trailing nick", () => {
+  assert.equal(parseWindow(["2026-06-10", "bob"], laCtx(LA_NOW)).nick, "bob");
+});
+
+test("today's date ends at now", () => {
+  const got = parseWindow(["2026-06-15"], laCtx(LA_NOW));
+  assert.equal(got.fromMs, LA_MIDNIGHT);
+  assert.equal(got.toMs, LA_NOW);
+});
+
+test("a date older than maxWindowHours is not floored", () => {
+  const got = parseWindow(["2026-06-01"], laCtx(LA_NOW));
+  assert.equal(got.fromMs, Date.UTC(2026, 5, 1, 7));
+  assert.equal(got.toMs, Date.UTC(2026, 5, 2, 7));
+});
+
+test("date windows on DST days span 23 and 25 hours", () => {
+  const now = Date.UTC(2027, 0, 1);
+  const spring = parseWindow(["2026-03-08"], laCtx(now));
+  const fall = parseWindow(["2026-11-01"], laCtx(now));
+  assert.equal((spring.toMs - spring.fromMs) / HOUR, 23);
+  assert.equal((fall.toMs - fall.fromMs) / HOUR, 25);
+});
+
+for (const bad of [
+  "2026-06-16",
+  "2026-02-30",
+  "2026-6-1",
+  "2026-13-01",
+  "0099-01-01",
+]) {
+  test(`parseWindow rejects date ${bad}`, () => {
+    assert.throws(() => parseWindow([bad], laCtx(LA_NOW)), /Usage/);
+  });
+}
+
+test("help text names the usage and the zone in effect", () => {
+  const text = helpText(LA);
+  assert.match(text, /^Usage: \/summarize/);
+  assert.match(text, /YYYY-MM-DD/);
+  assert.match(text, /Times use America\/Los_Angeles\.$/);
+  assert.match(helpText(undefined), /Times use \S+\.$/);
+});
+
+test("parseWindow keeps a digit-dash nick as a nick", () => {
+  assert.equal(parseWindow(["1-2-3"], ctx(NOW - HOUR)).nick, "1-2-3");
+});

@@ -28,8 +28,11 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 | `24h`, `6h`   | The last N hours (any `Nh`).                                                   |
 | `today`       | Since midnight.                                                                |
 | `since HH:MM` | Since that time today, or yesterday if it is still ahead.                      |
+| `YYYY-MM-DD`  | That one calendar day (up to now for today). Not limited by `maxWindowHours`.  |
 
-`today` and `since HH:MM` use the time zone of the server running The Lounge. A nick asks the model to focus on what that person said. If the window holds more than 200,000 characters the newest part is summarized and the reply says so. Timestamp gaps over 60 minutes are reported in the summary.
+`/summarize help` prints the usage. A nick named `help` needs a window first, as in `/summarize 24h help`.
+
+Days, `today` and `since HH:MM` use the `timeZone` config key, or the time zone of the server running The Lounge when it is unset. Printed timestamps use the same zone. A nick asks the model to focus on what that person said. If the window holds more than 200,000 characters the newest part is summarized and the reply says so. Timestamp gaps over 60 minutes are reported in the summary.
 
 ## Configuration
 
@@ -41,7 +44,8 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 | `model`          | Required for `bedrock` and `anthropic`: model or inference profile ID. |
 | `function`       | Required for `lambda`. Function name or ARN.                           |
 | `region`         | `bedrock` and `lambda`. Falls back to `AWS_REGION`.                    |
-| `maxWindowHours` | Optional, default 24. Cap for every window, explicit ones included.    |
+| `maxWindowHours` | Optional, default 24. Cap for every relative window, `Nh` included.    |
+| `timeZone`       | Optional IANA name, e.g. `America/Los_Angeles`. Default: server zone.  |
 
 Unknown keys are ignored with a warning in the server log. Never put a key in `config.json`.
 

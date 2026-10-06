@@ -38,3 +38,16 @@ test("a missing config yields one error line and no crash", async () => {
   assert.match(sent[0], /config\.json not found/);
   assert.equal(logs[0][0], "error");
 });
+
+test("help answers without a config or a log", async () => {
+  const { commands } = register(MISSING_DIR);
+  const sent = [];
+  const client = { sendMessage: (text) => sent.push(text) };
+  commands.summarize.input(client, { network: {}, chan: {} }, "summarize", [
+    "help",
+  ]);
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.match(sent[0], /^Usage: \/summarize/);
+  assert.ok(sent.length > 1);
+  assert.match(sent.at(-1), /^Times use /);
+});
