@@ -6,6 +6,7 @@ const { loadConfig } = require("./lib/config.js");
 const { UserError } = require("./lib/errors.js");
 const { sendLines, sendError, summaryHeader } = require("./lib/format.js");
 const { generate } = require("./lib/generate.js");
+const { invokeGateway } = require("./lib/gateway.js");
 const { createModel } = require("./lib/model.js");
 const { buildPrompt, gapsSection, limitInput } = require("./lib/prompt.js");
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
@@ -37,6 +38,14 @@ function loadLines(db, { network, chan, args, config }) {
   return { window, lines };
 }
 
+// The lambda provider bypasses the AI SDK so it is never loaded on that path.
+async function complete(config, request) {
+  if (config.provider === "lambda") {
+    return invokeGateway(config, request);
+  }
+  return generate(await createModel(config), request);
+}
+
 async function summarize(deps, publicClient, target, args) {
   const { network, chan } = target;
   if (deps.configError) {
@@ -54,9 +63,8 @@ async function summarize(deps, publicClient, target, args) {
     return;
   }
   const limited = limitInput(loaded.lines);
-  const model = await createModel(deps.config);
-  const text = await generate(
-    model,
+  const text = await complete(
+    deps.config,
     buildPrompt({
       lines: limited.lines,
       channel: chan.name,

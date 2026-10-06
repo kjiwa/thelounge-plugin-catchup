@@ -2,6 +2,7 @@ index.js
 lib/config.js
 lib/errors.js
 lib/format.js
+lib/gateway.js
 lib/generate.js
 lib/model.js
 lib/prompt.js

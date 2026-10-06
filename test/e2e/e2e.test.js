@@ -60,17 +60,57 @@ function startBedrockStub() {
   });
 }
 
-function writePluginConfig(home) {
+const FUNCTION_NAME = "stub-gateway";
+
+function startLambdaStub() {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        server.requests.push({ url: req.url, body });
+        if (
+          req.method !== "POST" ||
+          req.url !== `/2015-03-31/functions/${FUNCTION_NAME}/invocations`
+        ) {
+          res.writeHead(404).end();
+          return;
+        }
+        res
+          .writeHead(200, { "content-type": "application/json" })
+          .end(JSON.stringify({ text: STUB_TEXT }));
+      });
+    });
+    server.requests = [];
+    server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
+const SCENARIOS = [
+  {
+    name: "bedrock",
+    startStub: startBedrockStub,
+    endpointVar: "AWS_ENDPOINT_URL_BEDROCK_RUNTIME",
+    config: { provider: "bedrock", model: MODEL_ID, region: "us-west-2" },
+    callUrl: "/converse",
+  },
+  {
+    name: "lambda",
+    startStub: startLambdaStub,
+    endpointVar: "AWS_ENDPOINT_URL_LAMBDA",
+    config: {
+      provider: "lambda",
+      function: FUNCTION_NAME,
+      region: "us-west-2",
+    },
+    callUrl: "/invocations",
+  },
+];
+
+function writePluginConfig(home, config) {
   const dir = path.join(home, "packages", PACKAGE);
   fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(
-    path.join(dir, "config.json"),
-    JSON.stringify({
-      provider: "bedrock",
-      model: MODEL_ID,
-      region: "us-west-2",
-    }),
-  );
+  fs.writeFileSync(path.join(dir, "config.json"), JSON.stringify(config));
 }
 
 function waitForMessage(socket, predicate) {
@@ -165,8 +205,13 @@ function login(port) {
   });
 }
 
-test("The Lounge loads the plugin and /summarize relays the stubbed model reply", async (t) => {
-  const stub = await startBedrockStub();
+for (const scenario of SCENARIOS) {
+  test(`The Lounge loads the plugin and /summarize relays the stubbed ${scenario.name} reply`, (t) =>
+    runScenario(t, scenario));
+}
+
+async function runScenario(t, scenario) {
+  const stub = await scenario.startStub();
   const { home, env } = createHome();
   let server;
   let session;
@@ -182,7 +227,7 @@ test("The Lounge loads the plugin and /summarize relays the stubbed model reply"
   });
 
   installTarball(home, env);
-  writePluginConfig(home);
+  writePluginConfig(home, scenario.config);
   const port = await freePort();
   fixture.writeConfig(home, port);
 
@@ -191,7 +236,7 @@ test("The Lounge loads the plugin and /summarize relays the stubbed model reply"
     env: {
       ...env,
       NO_COLOR: "1",
-      AWS_ENDPOINT_URL_BEDROCK_RUNTIME: `http://127.0.0.1:${stub.address().port}`,
+      [scenario.endpointVar]: `http://127.0.0.1:${stub.address().port}`,
       AWS_ACCESS_KEY_ID: "fake",
       AWS_SECRET_ACCESS_KEY: "fake",
       AWS_REGION: "us-west-2",
@@ -217,7 +262,7 @@ test("The Lounge loads the plugin and /summarize relays the stubbed model reply"
   );
   session.socket.emit("input", { target: chan.id, text: "/summarize 24h" });
   await reply;
-  const call = stub.requests.find((r) => r.url.endsWith("/converse"));
+  const call = stub.requests.find((r) => r.url.endsWith(scenario.callUrl));
   assert.ok(call.body.includes("hello from the fixture"));
 
   const db = new DatabaseSync(
@@ -232,4 +277,4 @@ test("The Lounge loads the plugin and /summarize relays the stubbed model reply"
     rows.map((row) => JSON.parse(row.msg).text),
     fixture.MESSAGES.map(([, text]) => text),
   );
-});
+}
