@@ -113,9 +113,13 @@ test("The Lounge loads the packed plugin and the fixture log is readable", async
   const { home, env } = createHome();
   let server;
   let session;
-  t.after(() => {
+  t.after(async () => {
     session?.socket.close();
-    server?.kill("SIGTERM");
+    if (server && server.exitCode === null) {
+      const exited = new Promise((resolve) => server.once("exit", resolve));
+      server.kill("SIGTERM");
+      await exited;
+    }
     stub.close();
     fs.rmSync(home, { recursive: true, force: true });
   });

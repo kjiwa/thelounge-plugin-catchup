@@ -2,7 +2,7 @@
 
 Summarizes what you missed in IRC channels on The Lounge, on demand and only in your own client, using the LLM you configure.
 
-Status: scaffolding. The package loads in The Lounge but registers no command yet; `/summarize` arrives in 0.1.
+Status: scaffolding. The package loads in The Lounge but registers no command yet; `/summarize` arrives in 0.1. Configuration and Credentials describe the 0.1 behavior.
 
 ## Install
 
