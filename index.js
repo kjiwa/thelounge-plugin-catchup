@@ -9,13 +9,14 @@ const { generate } = require("./lib/generate.js");
 const { invokeGateway } = require("./lib/gateway.js");
 const { createModel } = require("./lib/model.js");
 const {
+  buildAskPrompt,
   buildPrompt,
   gapsSection,
   limitInput,
   mentionsSection,
 } = require("./lib/prompt.js");
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
-const { parseWindow, helpText } = require("./lib/window.js");
+const { parseWindow, parseAskWindow, helpText } = require("./lib/window.js");
 
 // client.name is TheLounge's internal user name and the only way to reach the
 // per-user log file; the public client API does not expose it.
@@ -27,9 +28,9 @@ function userLogName(publicClient) {
   return name;
 }
 
-function loadLines(db, { network, chan, args, config }) {
+function loadLines(db, { network, chan, spec, config }) {
   const query = { networkUuid: network.uuid, channel: chan.name };
-  const window = parseWindow(args, {
+  const window = spec.parse(spec.args, {
     nowMs: Date.now(),
     maxWindowHours: config.maxWindowHours,
     timeZone: config.timeZone,
@@ -52,55 +53,106 @@ async function complete(config, request) {
   return generate(await createModel(config), request);
 }
 
-async function summarize(deps, publicClient, target, args) {
+async function loadAndComplete(deps, publicClient, target, spec) {
   const { network, chan } = target;
-  if (args[0] === "help") {
-    sendLines(publicClient, chan, helpText(deps.config?.timeZone));
-    return;
-  }
   if (deps.configError) {
     throw deps.configError;
   }
   const db = openLog(deps.home, userLogName(publicClient));
   let loaded;
   try {
-    loaded = loadLines(db, { network, chan, args, config: deps.config });
+    loaded = loadLines(db, { network, chan, spec, config: deps.config });
   } finally {
     db.close();
   }
   if (loaded.lines.length === 0) {
     sendLines(publicClient, chan, "No messages in that window.");
-    return;
+    return undefined;
   }
   const limited = limitInput(loaded.lines);
   const text = await complete(
     deps.config,
-    buildPrompt({
+    spec.buildRequest({
       lines: limited.lines,
       channel: chan.name,
       nick: network.nick,
-      focusNick: loaded.window.nick,
+      window: loaded.window,
       timeZone: deps.config.timeZone,
     }),
   );
-  const header = summaryHeader({
+  return { window: loaded.window, limited, text };
+}
+
+function headerFor(title, deps, chan, { window, limited }) {
+  return summaryHeader({
+    title,
     channel: chan.name,
     count: limited.lines.length,
-    fromMs: loaded.window.fromMs,
-    toMs: loaded.window.toMs,
+    fromMs: window.fromMs,
+    toMs: window.toMs,
     truncated: limited.truncated,
-    capped: loaded.window.capped,
+    capped: window.capped,
     timeZone: deps.config.timeZone,
   });
+}
+
+async function summarize(deps, publicClient, target, args) {
+  const { network, chan } = target;
+  if (args[0] === "help") {
+    sendLines(publicClient, chan, helpText(deps.config?.timeZone));
+    return;
+  }
+  const result = await loadAndComplete(deps, publicClient, target, {
+    args,
+    parse: parseWindow,
+    buildRequest: ({ lines, channel, nick, window, timeZone }) =>
+      buildPrompt({ lines, channel, nick, focusNick: window.nick, timeZone }),
+  });
+  if (!result) {
+    return;
+  }
+  const { window, limited, text } = result;
   const gapBounds = {
-    fromMs: limited.truncated ? undefined : loaded.window.fromMs,
-    toMs: loaded.window.toMs,
+    fromMs: limited.truncated ? undefined : window.fromMs,
+    toMs: window.toMs,
   };
   sendLines(
     publicClient,
     chan,
-    `${header}\n${text}\n\n${mentionsSection(limited.lines, deps.config.timeZone, network.nick)}\n\n${gapsSection(limited.lines, deps.config.timeZone, gapBounds)}`,
+    `${headerFor("Summary of", deps, chan, result)}\n${text}\n\n${mentionsSection(limited.lines, deps.config.timeZone, network.nick)}\n\n${gapsSection(limited.lines, deps.config.timeZone, gapBounds)}`,
   );
+}
+
+function isHelpRequest(args) {
+  const tokens = args.filter((token) => token !== "");
+  return tokens.length === 1 && tokens[0] === "help";
+}
+
+async function ask(deps, publicClient, target, args) {
+  const { chan } = target;
+  if (isHelpRequest(args)) {
+    sendLines(publicClient, chan, helpText(deps.config?.timeZone, "ask"));
+    return;
+  }
+  const result = await loadAndComplete(deps, publicClient, target, {
+    args,
+    parse: parseAskWindow,
+    buildRequest: ({ lines, channel, nick, window, timeZone }) =>
+      buildAskPrompt({
+        lines,
+        channel,
+        nick,
+        question: window.question,
+        timeZone,
+      }),
+  });
+  if (result) {
+    sendLines(
+      publicClient,
+      chan,
+      `${headerFor("Answer from", deps, chan, result)}\n${result.text}`,
+    );
+  }
 }
 
 function readSettings(api) {
@@ -121,20 +173,25 @@ function readSettings(api) {
   }
 }
 
+function addCommand(api, name, run, deps) {
+  api.Commands.add(name, {
+    allowDisconnected: true,
+    input(publicClient, target, _command, args) {
+      run(deps, publicClient, target, args).catch((err) => {
+        try {
+          sendError(publicClient, target.chan, err, api.Logger);
+        } catch (sendErr) {
+          api.Logger.error(`Could not report error: ${sendErr.message}`);
+        }
+      });
+    },
+  });
+}
+
 module.exports = {
   onServerStart(api) {
     const deps = readSettings(api);
-    api.Commands.add("summarize", {
-      allowDisconnected: true,
-      input(publicClient, target, _command, args) {
-        summarize(deps, publicClient, target, args).catch((err) => {
-          try {
-            sendError(publicClient, target.chan, err, api.Logger);
-          } catch (sendErr) {
-            api.Logger.error(`Could not report error: ${sendErr.message}`);
-          }
-        });
-      },
-    });
+    addCommand(api, "summarize", summarize, deps);
+    addCommand(api, "ask", ask, deps);
   },
 };

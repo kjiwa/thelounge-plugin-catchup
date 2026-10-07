@@ -99,3 +99,12 @@ test("summaryHeader says 1 line in the singular", () => {
   assert.match(summaryHeader({ ...base, count: 1 }), /\(1 line\)/);
   assert.match(summaryHeader({ ...base, count: 2 }), /\(2 lines\)/);
 });
+
+test("the header title defaults to Summary of and can be replaced", () => {
+  const base = { channel: "#c", count: 3, fromMs: 0, toMs: 60000 };
+  assert.match(summaryHeader(base), /^Summary of #c, /);
+  assert.match(
+    summaryHeader({ ...base, title: "Answer from" }),
+    /^Answer from #c, /,
+  );
+});

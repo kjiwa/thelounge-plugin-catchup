@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Adds `/ask [window] <question>` and `/ask help`: the model answers from the window's log only, citing nick and time. Without a window it covers the last `maxWindowHours`, and `since` is a window only before `HH:MM`. The reply has a header and the answer, without MENTIONS or GAPS.
+
 ## 0.4.1
 
 MENTIONS is built by the plugin, not the model: highlighted lines by others, newest 10 in time order, then `N more not listed`; your own lines are never listed. Count nouns agree in number (`1 shorter gap not listed`). Model lines reading `Open: none` are dropped.

@@ -3,7 +3,11 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { parseWindow, helpText } = require("../../lib/window.js");
+const {
+  parseWindow,
+  parseAskWindow,
+  helpText,
+} = require("../../lib/window.js");
 
 const HOUR = 3600000;
 const NOW = new Date(2026, 5, 15, 14, 30, 0).getTime();
@@ -145,4 +149,50 @@ test("an explicit spec raised to the floor is capped; others are not", () => {
 test("the since-last floor is its definition, never a cap", () => {
   assert.equal(parseWindow([], ctx(NOW - 99 * HOUR)).capped, false);
   assert.equal(parseWindow([], ctx(undefined)).capped, false);
+});
+
+const askCases = [
+  ["who won", { fromMs: NOW - 24 * HOUR, question: "who won" }],
+  ["6h who won", { fromMs: NOW - 6 * HOUR, question: "who won" }],
+  [
+    "since 14:00 x",
+    { fromMs: new Date(2026, 5, 15, 14, 0).getTime(), question: "x" },
+  ],
+  ["since when x", { fromMs: NOW - 24 * HOUR, question: "since when x" }],
+  ["since-last x", { fromMs: NOW - 24 * HOUR, question: "since-last x" }],
+  ["9999h x", { fromMs: NOW - 24 * HOUR, question: "x", capped: true }],
+];
+
+for (const [input, expected] of askCases) {
+  test(`parseAskWindow(${JSON.stringify(input)})`, () => {
+    const got = parseAskWindow(input.split(" "), ctx());
+    assert.equal(got.fromMs, expected.fromMs);
+    assert.equal(got.question, expected.question);
+    assert.equal(got.toMs, NOW);
+    assert.equal(got.capped ?? false, expected.capped ?? false);
+  });
+}
+
+test("parseAskWindow accepts a question of exactly 500 characters", () => {
+  const got = parseAskWindow(["x".repeat(500)], ctx());
+  assert.equal(got.question.length, 500);
+});
+
+for (const bad of [[], [""], ["6h"], ["x".repeat(501)], ["0h", "x"]]) {
+  test(`parseAskWindow rejects ${JSON.stringify(bad)}`, () => {
+    assert.throws(() => parseAskWindow(bad, ctx()), /Usage: \/ask/);
+  });
+}
+
+test("parseAskWindow keeps an explicit date window's own end", () => {
+  const got = parseAskWindow(["2026-06-14", "x"], ctx());
+  assert.equal(got.fromMs, new Date(2026, 5, 14).getTime());
+  assert.equal(got.toMs, new Date(2026, 5, 15).getTime());
+});
+
+test("ask help names the ask usage and the zone in effect", () => {
+  const text = helpText(LA, "ask");
+  assert.match(text, /^Usage: \/ask/);
+  assert.doesNotMatch(text, /summarize/);
+  assert.match(text, /Times use America\/Los_Angeles\.$/);
 });
