@@ -133,7 +133,7 @@ test("help text names the usage and the zone in effect", () => {
   assert.match(text, /YYYY-MM-DD/);
   assert.match(text, /Times use America\/Los_Angeles\.\n/);
   assert.match(text, /\nthelounge-plugin-catchup 1\.2\.3$/);
-  assert.match(helpText(undefined, "summarize", "1.2.3"),/Times use \S+\.\n/);
+  assert.match(helpText(undefined, "summarize", "1.2.3"), /Times use \S+\.\n/);
 });
 
 test("parseWindow keeps a digit-dash nick as a nick", () => {
