@@ -109,14 +109,18 @@ function buildHome() {
   return { home, dir };
 }
 
-async function runWithStubbedLambda(command, args) {
+async function runWithStubbedLambda(
+  command,
+  args,
+  body = { text: "the answer" },
+) {
   const { home, dir } = buildHome();
   const { LambdaClient } = require("@aws-sdk/client-lambda");
   const originalSend = LambdaClient.prototype.send;
   const payloads = [];
   LambdaClient.prototype.send = async function (invoke) {
     payloads.push(JSON.parse(invoke.input.Payload));
-    return { Payload: Buffer.from(JSON.stringify({ text: "the answer" })) };
+    return { Payload: Buffer.from(JSON.stringify(body)) };
   };
   try {
     const { commands } = register(dir);
@@ -158,6 +162,21 @@ test("summarize still appends MENTIONS and GAPS", async () => {
   assert.match(sent[0], /^Summary of #c, /);
   assert.ok(sent.includes("MENTIONS"));
   assert.ok(sent.includes("GAPS"));
+});
+
+test("a cut reply carries the notice, an intact one does not", async () => {
+  const notice = "(Reply cut at the output limit.)";
+  for (const command of ["ask", "summarize"]) {
+    const args = command === "ask" ? ["who"] : ["24h"];
+    const cut = await runWithStubbedLambda(command, args, {
+      text: "the answer",
+      cut: true,
+    });
+    assert.ok(cut.sent.includes(notice), command);
+    assert.equal(cut.sent[cut.sent.indexOf(notice) - 1], "the answer");
+    const whole = await runWithStubbedLambda(command, args);
+    assert.ok(!whole.sent.includes(notice), command);
+  }
 });
 
 test("an ask with no question reports its usage", async () => {
