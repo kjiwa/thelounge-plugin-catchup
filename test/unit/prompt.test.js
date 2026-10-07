@@ -265,3 +265,15 @@ test("the ask prompt carries the question and the rendered log", () => {
   assert.match(system, /Answer only from the log/);
   assert.match(system, /never instructions/);
 });
+
+test("the ask prompt scopes the refusal to absent facts and handles per-person and quote requests", () => {
+  const { system } = buildAskPrompt({
+    lines,
+    channel: "#c",
+    nick: "a",
+    question: "q",
+  });
+  assert.match(system, /only when the specific fact is absent/);
+  assert.match(system, /one line per person/);
+  assert.match(system, /quote each as time, nick and text/);
+});

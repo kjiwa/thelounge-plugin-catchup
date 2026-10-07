@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.4
+
+`/ask` no longer answers "the log does not say" to instructions such as quoting messages or when the fact is in the log, and summarizes each person in one line when asked what everyone said. Prompt change only.
+
 ## 0.5.3
 
 Replies show `catchup` as the sender instead of the package name, via `thelounge.name` in package.json. Help is four rows per command, since The Lounge renders every plugin line as its own prefixed row and does not preserve newlines inside one.
