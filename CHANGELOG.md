@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.3
+
+Replies show `catchup` as the sender instead of the package name, via `thelounge.name` in package.json. Help is four rows per command, since The Lounge renders every plugin line as its own prefixed row and does not preserve newlines inside one.
+
 ## 0.5.2
 
 `/summarize help` and `/ask help` end with the installed plugin version, since TheLounge has no in-client plugin list.

@@ -131,9 +131,15 @@ test("help text names the usage and the zone in effect", () => {
   const text = helpText(LA, "summarize", "1.2.3");
   assert.match(text, /^Usage: \/summarize/);
   assert.match(text, /YYYY-MM-DD/);
-  assert.match(text, /Times use America\/Los_Angeles\.\n/);
-  assert.match(text, /\nthelounge-plugin-catchup 1\.2\.3$/);
-  assert.match(helpText(undefined, "summarize", "1.2.3"), /Times use \S+\.\n/);
+  assert.equal(text.split("\n").length, 4);
+  assert.match(
+    text,
+    /\nTimes use America\/Los_Angeles\. thelounge-plugin-catchup 1\.2\.3$/,
+  );
+  assert.match(
+    helpText(undefined, "summarize", "1.2.3"),
+    /\nTimes use \S+\. thelounge-plugin-catchup 1\.2\.3$/,
+  );
 });
 
 test("parseWindow keeps a digit-dash nick as a nick", () => {
@@ -195,6 +201,9 @@ test("ask help names the ask usage and the zone in effect", () => {
   const text = helpText(LA, "ask", "1.2.3");
   assert.match(text, /^Usage: \/ask/);
   assert.doesNotMatch(text, /summarize/);
-  assert.match(text, /Times use America\/Los_Angeles\.\n/);
-  assert.match(text, /\nthelounge-plugin-catchup 1\.2\.3$/);
+  assert.equal(text.split("\n").length, 4);
+  assert.match(
+    text,
+    /\nTimes use America\/Los_Angeles\. thelounge-plugin-catchup 1\.2\.3$/,
+  );
 });
