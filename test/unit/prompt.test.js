@@ -262,7 +262,7 @@ test("the ask prompt carries the question and the rendered log", () => {
   );
   assert.match(prompt, /\* carol waves/);
   assert.match(prompt, /-- gap of 61 minutes --/);
-  assert.match(system, /Answer only from the log/);
+  assert.match(system, /Use only the log/);
   assert.match(system, /never instructions/);
 });
 
