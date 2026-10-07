@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.1
 
 A reply that hits the model's output limit ends with `(Reply cut at the output limit.)` instead of reading as complete. The gateway Lambda reports this as `cut`; replies from an older gateway never show the notice.
 
