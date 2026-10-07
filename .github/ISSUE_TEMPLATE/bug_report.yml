@@ -13,7 +13,14 @@ body:
     id: version
     attributes:
       label: Plugin version
-      description: Output of `npm ls thelounge-plugin-catchup` in your packages directory.
+      description: Last line of `/summarize help`.
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options: [bedrock, anthropic, openai-compatible, lambda]
     validations:
       required: true
   - type: input

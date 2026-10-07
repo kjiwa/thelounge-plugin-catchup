@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.6.0
 
-Adds the `openai-compatible` provider for Ollama, llama.cpp, OpenRouter and other OpenAI-style servers, with `baseURL` and an optional `OPENAI_COMPATIBLE_API_KEY`. Adds `maxInputChars` (default 200000) and `timeoutSeconds` (default 60), which apply to every provider.
+Adds the `openai-compatible` provider for Ollama, llama.cpp, OpenRouter and other OpenAI-style servers, with `baseURL` and an optional `OPENAI_COMPATIBLE_API_KEY`. Adds `maxInputChars` (default 200000) and `timeoutSeconds` (default 60), which apply to every provider. A model call that exceeds `timeoutSeconds` now says so in the channel, and an empty model reply is reported as a failure instead of showing a bare header.
 
 ## 0.5.4
 
@@ -14,7 +14,7 @@ Replies show `catchup` as the sender instead of the package name, via `thelounge
 
 ## 0.5.2
 
-`/summarize help` and `/ask help` end with the installed plugin version, since TheLounge has no in-client plugin list.
+`/summarize help` and `/ask help` end with the installed plugin version, since The Lounge has no in-client plugin list.
 
 ## 0.5.1
 

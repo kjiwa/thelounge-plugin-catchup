@@ -13,6 +13,6 @@ body:
     id: proposal
     attributes:
       label: Proposed change
-      description: What you'd like to see, and why it fits the plugin's scope (on-demand catch-up in your own client, nothing stored, providers only through AI SDK packages).
+      description: What you'd like to see, and why it fits the plugin's scope (on-demand catch-up in your own client, nothing stored, providers only through AI SDK packages or the lambda gateway).
     validations:
       required: true

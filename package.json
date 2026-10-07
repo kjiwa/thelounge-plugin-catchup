@@ -18,7 +18,11 @@
     "irc",
     "summarize",
     "ask",
-    "llm"
+    "llm",
+    "ollama",
+    "bedrock",
+    "anthropic",
+    "openai"
   ],
   "files": [
     "index.js",
