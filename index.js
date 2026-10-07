@@ -50,20 +50,23 @@ function loadLines(db, { network, chan, spec, config }) {
 
 const CUT_NOTICE = "(Reply cut at the output limit.)";
 
-async function runProvider(config, request, signal) {
-  if (config.provider === "lambda") {
-    return invokeGateway(config, request, signal);
-  }
-  return generate(await createModel(config), request, signal);
-}
+const ABORT_ERRORS = ["AbortError", "TimeoutError"];
 
 // The lambda provider bypasses the AI SDK so it is never loaded on that path.
+// The timer starts after the model is built, so the first-use import of the
+// SDK does not count against timeoutSeconds.
 async function complete(config, request) {
+  const call =
+    config.provider === "lambda"
+      ? (signal) => invokeGateway(config, request, signal)
+      : await createModel(config).then(
+          (model) => (signal) => generate(model, request, signal),
+        );
   const signal = AbortSignal.timeout(config.timeoutSeconds * 1000);
   try {
-    return await runProvider(config, request, signal);
+    return await call(signal);
   } catch (err) {
-    if (signal.aborted) {
+    if (signal.aborted && ABORT_ERRORS.includes(err.name)) {
       throw new UserError(
         `No reply within ${config.timeoutSeconds} seconds (timeoutSeconds)`,
       );

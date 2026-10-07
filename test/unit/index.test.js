@@ -129,11 +129,15 @@ async function runWithStubbedLambda(
   LambdaClient.prototype.send = async function (invoke, options) {
     payloads.push(JSON.parse(invoke.input.Payload));
     if (hang) {
-      await new Promise((_, reject) =>
-        options.abortSignal.addEventListener("abort", () =>
-          reject(Object.assign(new Error("aborted"), { name: "AbortError" })),
-        ),
-      );
+      const { abortSignal } = options;
+      await new Promise((_, reject) => {
+        const abort = () =>
+          reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+        if (abortSignal.aborted) {
+          abort();
+        }
+        abortSignal.addEventListener("abort", abort);
+      });
     }
     return { Payload: Buffer.from(JSON.stringify(body)) };
   };
