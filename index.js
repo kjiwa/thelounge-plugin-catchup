@@ -18,6 +18,8 @@ const {
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
 const { parseWindow, parseAskWindow, helpText } = require("./lib/window.js");
 
+const { version } = require("./package.json");
+
 // client.name is TheLounge's internal user name and the only way to reach the
 // per-user log file; the public client API does not expose it.
 function userLogName(publicClient) {
@@ -105,7 +107,11 @@ function headerFor(title, deps, chan, { window, limited }) {
 async function summarize(deps, publicClient, target, args) {
   const { network, chan } = target;
   if (args[0] === "help") {
-    sendLines(publicClient, chan, helpText(deps.config?.timeZone));
+    sendLines(
+      publicClient,
+      chan,
+      helpText(deps.config?.timeZone, "summarize", version),
+    );
     return;
   }
   const result = await loadAndComplete(deps, publicClient, target, {
@@ -137,7 +143,11 @@ function isHelpRequest(args) {
 async function ask(deps, publicClient, target, args) {
   const { chan } = target;
   if (isHelpRequest(args)) {
-    sendLines(publicClient, chan, helpText(deps.config?.timeZone, "ask"));
+    sendLines(
+      publicClient,
+      chan,
+      helpText(deps.config?.timeZone, "ask", version),
+    );
     return;
   }
   const result = await loadAndComplete(deps, publicClient, target, {

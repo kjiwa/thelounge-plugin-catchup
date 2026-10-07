@@ -31,9 +31,9 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 | `since HH:MM` | Since that time today, or yesterday if it is still ahead.                      |
 | `YYYY-MM-DD`  | That one calendar day (up to now for today). Not limited by `maxWindowHours`.  |
 
-`/summarize help` prints the usage. A nick named `help` needs a window first, as in `/summarize 24h help`.
+`/summarize help` prints the usage and the installed plugin version. A nick named `help` needs a window first, as in `/summarize 24h help`.
 
-`/ask` answers a question of up to 500 characters from the window's log alone, citing nick and time, and says so when the log does not answer it. It takes the same windows, but with none it covers the last `maxWindowHours` rather than since-last, and `since` counts as a window only before an `HH:MM`, so `/ask since when did bob leave?` is a question. A question that starts with a window word (`today`, `6h`, a date) needs a window in front, e.g. `/ask 24h today is the deploy done?`. The reply is a header and the answer, without MENTIONS or GAPS. `/ask help` prints the usage.
+`/ask` answers a question of up to 500 characters from the window's log alone, citing nick and time, and says so when the log does not answer it. It takes the same windows, but with none it covers the last `maxWindowHours` rather than since-last, and `since` counts as a window only before an `HH:MM`, so `/ask since when did bob leave?` is a question. A question that starts with a window word (`today`, `6h`, a date) needs a window in front, e.g. `/ask 24h today is the deploy done?`. The reply is a header and the answer, without MENTIONS or GAPS. `/ask help` prints the usage and the plugin version.
 
 Days, `today` and `since HH:MM` use the `timeZone` config key, or the time zone of the server running The Lounge when it is unset. Printed timestamps use the same zone. A nick asks the model to focus on what that person said. If the window holds more than 200,000 characters the newest part is summarized and the reply says so. The header notes when `maxWindowHours` shortened an explicit `Nh` window. Every topic carries a gist.
 
