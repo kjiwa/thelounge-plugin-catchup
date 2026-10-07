@@ -60,6 +60,8 @@ function startBedrockStub() {
   });
 }
 
+const ASK_QUESTION = "who greeted the fixture channel";
+
 const FUNCTION_NAME = "stub-gateway";
 
 function startLambdaStub() {
@@ -251,7 +253,9 @@ async function runScenario(t, scenario) {
   assert.doesNotMatch(output, /could not be loaded/);
   assert.equal(session.init.networks.length, 1);
 
-  assert.ok((await session.commands).includes("/summarize"));
+  const commands = await session.commands;
+  assert.ok(commands.includes("/summarize"));
+  assert.ok(commands.includes("/ask"));
 
   const chan = session.init.networks[0].channels.find(
     (c) => c.name === fixture.CHANNEL,
@@ -264,6 +268,20 @@ async function runScenario(t, scenario) {
   await reply;
   const call = stub.requests.find((r) => r.url.endsWith(scenario.callUrl));
   assert.ok(call.body.includes("hello from the fixture"));
+
+  const askReply = waitForMessage(
+    session.socket,
+    ({ chan: id, msg }) => id === chan.id && msg.text.includes(STUB_TEXT),
+  );
+  session.socket.emit("input", {
+    target: chan.id,
+    text: `/ask 24h ${ASK_QUESTION}`,
+  });
+  await askReply;
+  const askCall = stub.requests.findLast(
+    (r) => r.url.endsWith(scenario.callUrl) && r.body.includes(ASK_QUESTION),
+  );
+  assert.ok(askCall.body.includes("hello from the fixture"));
 
   const db = new DatabaseSync(
     path.join(home, "logs", `${fixture.USER}.sqlite3`),
