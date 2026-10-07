@@ -54,7 +54,7 @@ async function complete(config, request) {
   if (config.provider === "lambda") {
     return invokeGateway(config, request);
   }
-  return generate(await createModel(config), request);
+  return generate(await createModel(config), request, config.timeoutSeconds);
 }
 
 async function loadAndComplete(deps, publicClient, target, spec) {
@@ -73,7 +73,7 @@ async function loadAndComplete(deps, publicClient, target, spec) {
     sendLines(publicClient, chan, "No messages in that window.");
     return undefined;
   }
-  const limited = limitInput(loaded.lines);
+  const limited = limitInput(loaded.lines, deps.config.maxInputChars);
   const { text, cut } = await complete(
     deps.config,
     spec.buildRequest({

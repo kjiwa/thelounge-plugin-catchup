@@ -5,7 +5,12 @@ const test = require("node:test");
 
 const { createLambdaClient, invokeGateway } = require("../../lib/gateway.js");
 
-const CONFIG = { provider: "lambda", function: "gw", region: "us-west-2" };
+const CONFIG = {
+  provider: "lambda",
+  function: "gw",
+  region: "us-west-2",
+  timeoutSeconds: 60,
+};
 const REQUEST = { system: "sys", prompt: "hello" };
 
 function stubClient(response) {
@@ -115,7 +120,7 @@ test("an unparseable, null or empty gateway reply is an error", async () => {
     };
     await assert.rejects(
       invokeGateway(
-        { function: "f", region: "r" },
+        { function: "f", region: "r", timeoutSeconds: 60 },
         { system: "s", prompt: "p" },
         () => client,
       ),

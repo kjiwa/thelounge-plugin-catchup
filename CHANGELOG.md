@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+Adds the `openai-compatible` provider for Ollama, llama.cpp, OpenRouter and other OpenAI-style servers, with `baseURL` and an optional `OPENAI_COMPATIBLE_API_KEY`. Adds `maxInputChars` (default 200000) and `timeoutSeconds` (default 60), which apply to every provider.
+
 ## 0.5.4
 
 `/ask` no longer answers "the log does not say" to instructions such as quoting messages or when the fact is in the log, and summarizes each person in one line when asked what everyone said. Prompt change only.

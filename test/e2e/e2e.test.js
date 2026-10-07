@@ -88,6 +88,44 @@ function startLambdaStub() {
   });
 }
 
+function startOpenAiStub() {
+  return new Promise((resolve) => {
+    const server = http.createServer((req, res) => {
+      let body = "";
+      req.on("data", (chunk) => (body += chunk));
+      req.on("end", () => {
+        server.requests.push({ url: req.url, body });
+        if (req.method !== "POST" || req.url !== "/chat/completions") {
+          res.writeHead(404).end();
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" }).end(
+          JSON.stringify({
+            id: "chatcmpl-stub",
+            object: "chat.completion",
+            created: 0,
+            model: "stub-model",
+            choices: [
+              {
+                index: 0,
+                message: { role: "assistant", content: STUB_TEXT },
+                finish_reason: "stop",
+              },
+            ],
+            usage: {
+              prompt_tokens: 10,
+              completion_tokens: 10,
+              total_tokens: 20,
+            },
+          }),
+        );
+      });
+    });
+    server.requests = [];
+    server.listen(0, "127.0.0.1", () => resolve(server));
+  });
+}
+
 const SCENARIOS = [
   {
     name: "bedrock",
@@ -106,6 +144,16 @@ const SCENARIOS = [
       region: "us-west-2",
     },
     callUrl: "/invocations",
+  },
+  {
+    name: "openai-compatible",
+    startStub: startOpenAiStub,
+    config: (stubUrl) => ({
+      provider: "openai-compatible",
+      model: "stub-model",
+      baseURL: stubUrl,
+    }),
+    callUrl: "/chat/completions",
   },
 ];
 
@@ -228,8 +276,14 @@ async function runScenario(t, scenario) {
     fs.rmSync(home, { recursive: true, force: true });
   });
 
+  const stubUrl = `http://127.0.0.1:${stub.address().port}`;
   installTarball(home, env);
-  writePluginConfig(home, scenario.config);
+  writePluginConfig(
+    home,
+    typeof scenario.config === "function"
+      ? scenario.config(stubUrl)
+      : scenario.config,
+  );
   const port = await freePort();
   fixture.writeConfig(home, port);
 
@@ -238,7 +292,7 @@ async function runScenario(t, scenario) {
     env: {
       ...env,
       NO_COLOR: "1",
-      [scenario.endpointVar]: `http://127.0.0.1:${stub.address().port}`,
+      ...(scenario.endpointVar && { [scenario.endpointVar]: stubUrl }),
       AWS_ACCESS_KEY_ID: "fake",
       AWS_SECRET_ACCESS_KEY: "fake",
       AWS_REGION: "us-west-2",

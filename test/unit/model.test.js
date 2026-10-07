@@ -36,3 +36,14 @@ test("an unknown provider throws", async () => {
     /Unknown provider/,
   );
 });
+
+test("openai-compatible yields a model object, never a string", async () => {
+  const model = await createModel({
+    provider: "openai-compatible",
+    model: "example-model",
+    baseURL: "http://127.0.0.1:11434/v1",
+  });
+  assert.notEqual(typeof model, "string");
+  assert.equal(typeof model, "object");
+  assert.equal(model.modelId, "example-model");
+});
