@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.1
+
+MENTIONS is built by the plugin, not the model: highlighted lines by others, newest 10 in time order, then `N more not listed`; your own lines are never listed. Count nouns agree in number (`1 shorter gap not listed`). Model lines reading `Open: none` are dropped.
+
 ## 0.4.0
 
 The header notes when `maxWindowHours` capped an `Nh` window and says `1 line` in the singular. GAPS counts silence at the window edges, lists the 5 longest gaps, and reports the rest as `N shorter gaps not listed`; a truncated input omits the window-start gap. The prompt requires a gist for every topic and a separate topic per subject.

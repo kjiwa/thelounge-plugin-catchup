@@ -3,7 +3,13 @@
 const assert = require("node:assert/strict");
 const test = require("node:test");
 
-const { buildPrompt, limitInput, gapsSection } = require("../../lib/prompt.js");
+const {
+  buildPrompt,
+  limitInput,
+  gapsSection,
+  mentionsSection,
+  plural,
+} = require("../../lib/prompt.js");
 
 const MIN = 60000;
 
@@ -161,4 +167,83 @@ test("the system prompt requires a gist for every topic", () => {
   assert.match(system, /Every topic must have a gist line/);
   assert.match(system, /Open: a question nobody answered/);
   assert.match(system, /own topic/);
+});
+
+test("plural pluralizes except for one", () => {
+  assert.equal(plural(0, "line"), "0 lines");
+  assert.equal(plural(1, "line"), "1 line");
+  assert.equal(plural(2, "shorter gap"), "2 shorter gaps");
+});
+
+test("gapsSection says 1 shorter gap in the singular", () => {
+  const minutes = [70, 200, 80, 300, 90, 100];
+  let t = T0;
+  const spaced = [{ ...lines[0], time: t }];
+  for (const m of minutes) {
+    t += m * MIN;
+    spaced.push({ ...lines[0], time: t });
+  }
+  assert.match(gapsSection(spaced), /\n- 1 shorter gap not listed$/);
+});
+
+function mention(i, nick = "bob", text = `hi ${i}`) {
+  return {
+    time: T0 + i * MIN,
+    type: "message",
+    nick,
+    text,
+    highlight: true,
+  };
+}
+
+test("mentionsSection lists highlight lines by others and skips the own nick", () => {
+  const input = [
+    mention(1),
+    mention(2, "Alice"),
+    mention(3, "carol"),
+    { ...lines[0], nick: "dave", highlight: false },
+  ];
+  assert.equal(
+    mentionsSection(input, undefined, "alice"),
+    "MENTIONS\n- 12:01 bob: hi 1\n- 12:03 carol: hi 3",
+  );
+});
+
+test("mentionsSection says None. when nothing qualifies", () => {
+  assert.equal(
+    mentionsSection([mention(1, "alice")], undefined, "ALICE"),
+    "MENTIONS\nNone.",
+  );
+  assert.equal(mentionsSection([], undefined, "alice"), "MENTIONS\nNone.");
+});
+
+test("mentionsSection keeps the newest 10 in time order and counts the rest", () => {
+  const input = Array.from({ length: 11 }, (_, i) => mention(i));
+  const out = mentionsSection(input, undefined, "alice").split("\n");
+  assert.equal(out.length, 12);
+  assert.equal(out[1], "- 12:01 bob: hi 1");
+  assert.equal(out[10], "- 12:10 bob: hi 10");
+  assert.equal(out[11], "- 1 more not listed");
+});
+
+test("mentionsSection cuts text to 100 characters and uses the zone", () => {
+  const out = mentionsSection(
+    [mention(0, "bob", "x".repeat(150))],
+    "UTC",
+    "alice",
+  ).split("\n")[1];
+  assert.match(out, /^- \d\d:\d\d bob: x{100}$/);
+  const utc = new Date(T0).toISOString().slice(11, 16);
+  assert.ok(out.startsWith(`- ${utc} `));
+});
+
+test("the system prompt no longer asks for MENTIONS but the log keeps marks", () => {
+  const { system, prompt } = buildPrompt({
+    lines: [mention(1)],
+    channel: "#c",
+    nick: "a",
+  });
+  assert.doesNotMatch(system, /MENTIONS\n|all four/);
+  assert.match(system, /all three sections/);
+  assert.match(prompt, /\[MENTIONS YOU\]/);
 });

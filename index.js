@@ -8,7 +8,12 @@ const { sendLines, sendError, summaryHeader } = require("./lib/format.js");
 const { generate } = require("./lib/generate.js");
 const { invokeGateway } = require("./lib/gateway.js");
 const { createModel } = require("./lib/model.js");
-const { buildPrompt, gapsSection, limitInput } = require("./lib/prompt.js");
+const {
+  buildPrompt,
+  gapsSection,
+  limitInput,
+  mentionsSection,
+} = require("./lib/prompt.js");
 const { openLog, fetchLines, findLastOwnMs } = require("./lib/store.js");
 const { parseWindow, helpText } = require("./lib/window.js");
 
@@ -94,7 +99,7 @@ async function summarize(deps, publicClient, target, args) {
   sendLines(
     publicClient,
     chan,
-    `${header}\n${text}\n\n${gapsSection(limited.lines, deps.config.timeZone, gapBounds)}`,
+    `${header}\n${text}\n\n${mentionsSection(limited.lines, deps.config.timeZone, network.nick)}\n\n${gapsSection(limited.lines, deps.config.timeZone, gapBounds)}`,
   );
 }
 

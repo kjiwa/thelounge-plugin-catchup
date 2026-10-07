@@ -34,7 +34,9 @@ Create `packages/thelounge-plugin-catchup/config.json` under `THELOUNGE_HOME`, g
 
 Days, `today` and `since HH:MM` use the `timeZone` config key, or the time zone of the server running The Lounge when it is unset. Printed timestamps use the same zone. A nick asks the model to focus on what that person said. If the window holds more than 200,000 characters the newest part is summarized and the reply says so. The header notes when `maxWindowHours` shortened an explicit `Nh` window. Every topic carries a gist.
 
-Silence over 60 minutes is listed under GAPS, including the stretch from the window start to the first line and from the last line to the window end. GAPS shows the 5 longest in time order, then a `N shorter gaps not listed` line. When the input was truncated the window-start gap is omitted.
+MENTIONS is built by the plugin between the summary and GAPS. It lists lines TheLounge highlighted for you, by other people, as `- HH:MM nick: text` (text cut to 100 characters), the newest 10 in time order, then `N more not listed`; `None.` when empty.
+
+Silence over 60 minutes is listed under GAPS, including the stretch from the window start to the first line and from the last line to the window end. GAPS shows the 5 longest in time order, then a `N shorter gaps not listed` line (`1 shorter gap` in the singular). When the input was truncated the window-start gap is omitted.
 
 ## Configuration
 

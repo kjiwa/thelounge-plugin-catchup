@@ -80,3 +80,22 @@ test("the header notes a capped window", () => {
     /capped/,
   );
 });
+
+test("sendLines drops model lines that say Open: none", () => {
+  const client = recorder();
+  sendLines(
+    client,
+    "chan",
+    "a\n  Open: None.\nopen: none\n   Open: a question",
+  );
+  assert.deepEqual(
+    client.sent.map(([text]) => text),
+    ["a", "   Open: a question"],
+  );
+});
+
+test("summaryHeader says 1 line in the singular", () => {
+  const base = { channel: "#c", fromMs: 0, toMs: 60000, timeZone: "UTC" };
+  assert.match(summaryHeader({ ...base, count: 1 }), /\(1 line\)/);
+  assert.match(summaryHeader({ ...base, count: 2 }), /\(2 lines\)/);
+});
