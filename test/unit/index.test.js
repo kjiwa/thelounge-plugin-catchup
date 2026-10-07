@@ -9,6 +9,7 @@ const path = require("node:path");
 const { DatabaseSync } = require("node:sqlite");
 
 const plugin = require("../../index.js");
+const { version } = require("../../package.json");
 
 const MISSING_DIR = path.join(path.sep, "nonexistent", "packages", "pkg");
 
@@ -52,7 +53,7 @@ test("help answers without a config or a log", async () => {
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(sent[0], /^Usage: \/summarize/);
   assert.ok(sent.length > 1);
-  assert.match(sent.at(-1), /^Times use /);
+  assert.equal(sent.at(-1), `thelounge-plugin-catchup ${version}`);
 });
 
 test("registers /ask usable while disconnected", () => {
@@ -67,7 +68,7 @@ test("ask help answers without a config or a log", async () => {
   commands.ask.input(client, { network: {}, chan: {} }, "ask", ["help"]);
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(sent[0], /^Usage: \/ask/);
-  assert.match(sent.at(-1), /^Times use /);
+  assert.equal(sent.at(-1), `thelounge-plugin-catchup ${version}`);
 });
 
 async function waitFor(predicate, timeoutMs) {
