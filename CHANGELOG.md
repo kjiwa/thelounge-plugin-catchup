@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.5.0
 
 Adds `/ask [window] <question>` and `/ask help`: the model answers from the window's log only, citing nick and time. Without a window it covers the last `maxWindowHours`, and `since` is a window only before `HH:MM`. The reply has a header and the answer, without MENTIONS or GAPS.
 
