@@ -52,8 +52,8 @@ test("help answers without a config or a log", async () => {
   ]);
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(sent[0], /^Usage: \/summarize/);
-  assert.ok(sent.length > 1);
-  assert.equal(sent.at(-1), `thelounge-plugin-catchup ${version}`);
+  assert.equal(sent.length, 4);
+  assert.match(sent.at(-1), new RegExp(`thelounge-plugin-catchup ${version}$`));
 });
 
 test("registers /ask usable while disconnected", () => {
@@ -68,7 +68,8 @@ test("ask help answers without a config or a log", async () => {
   commands.ask.input(client, { network: {}, chan: {} }, "ask", ["help"]);
   await new Promise((resolve) => setImmediate(resolve));
   assert.match(sent[0], /^Usage: \/ask/);
-  assert.equal(sent.at(-1), `thelounge-plugin-catchup ${version}`);
+  assert.equal(sent.length, 4);
+  assert.match(sent.at(-1), new RegExp(`thelounge-plugin-catchup ${version}$`));
 });
 
 async function waitFor(predicate, timeoutMs) {
