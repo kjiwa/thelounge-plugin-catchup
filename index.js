@@ -31,15 +31,16 @@ function userLogName(publicClient) {
 }
 
 function loadLines(db, { network, chan, spec, config }) {
+  const nowMs = Date.now();
   const query = { networkUuid: network.uuid, channel: chan.name };
   const window = spec.parse(spec.args, {
-    nowMs: Date.now(),
+    nowMs,
     maxWindowHours: config.maxWindowHours,
     timeZone: config.timeZone,
     findLastOwnMs: (floorMs) =>
       findLastOwnMs(
         db,
-        { ...query, fromMs: floorMs, toMs: Date.now() },
+        { ...query, fromMs: floorMs, toMs: nowMs },
         network.nick,
       ),
   });
@@ -49,12 +50,29 @@ function loadLines(db, { network, chan, spec, config }) {
 
 const CUT_NOTICE = "(Reply cut at the output limit.)";
 
+const ABORT_ERRORS = ["AbortError", "TimeoutError"];
+
 // The lambda provider bypasses the AI SDK so it is never loaded on that path.
+// The timer starts after the model is built, so the first-use import of the
+// SDK does not count against timeoutSeconds.
 async function complete(config, request) {
-  if (config.provider === "lambda") {
-    return invokeGateway(config, request);
+  const call =
+    config.provider === "lambda"
+      ? (signal) => invokeGateway(config, request, signal)
+      : await createModel(config).then(
+          (model) => (signal) => generate(model, request, signal),
+        );
+  const signal = AbortSignal.timeout(config.timeoutSeconds * 1000);
+  try {
+    return await call(signal);
+  } catch (err) {
+    if (signal.aborted && ABORT_ERRORS.includes(err.name)) {
+      throw new UserError(
+        `No reply within ${config.timeoutSeconds} seconds (timeoutSeconds)`,
+      );
+    }
+    throw err;
   }
-  return generate(await createModel(config), request, config.timeoutSeconds);
 }
 
 async function loadAndComplete(deps, publicClient, target, spec) {

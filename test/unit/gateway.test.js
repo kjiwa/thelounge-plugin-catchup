@@ -38,11 +38,12 @@ function reply(body, extra = {}) {
 
 test("invokes the function with {system, prompt} and returns text", async () => {
   const client = stubClient(reply({ text: "summary" }));
-  const result = await invokeGateway(CONFIG, REQUEST, () => client);
+  const signal = AbortSignal.timeout(5000);
+  const result = await invokeGateway(CONFIG, REQUEST, signal, () => client);
   assert.deepEqual(result, { text: "summary", cut: false });
   assert.equal(client.calls[0].input.FunctionName, "gw");
   assert.deepEqual(JSON.parse(client.calls[0].input.Payload), REQUEST);
-  assert.ok(client.calls[0].options.abortSignal);
+  assert.equal(client.calls[0].options.abortSignal, signal);
   assert.equal(client.destroyed, true);
 });
 
@@ -53,7 +54,12 @@ test("cut is true only for a boolean true", async () => {
     [1, false],
   ]) {
     const client = stubClient(reply({ text: "t", cut }));
-    const result = await invokeGateway(CONFIG, REQUEST, () => client);
+    const result = await invokeGateway(
+      CONFIG,
+      REQUEST,
+      undefined,
+      () => client,
+    );
     assert.equal(result.cut, expected);
   }
 });
@@ -87,7 +93,7 @@ test("a FunctionError reply is an error", async () => {
     reply({ errorMessage: "boom" }, { FunctionError: "Unhandled" }),
   );
   await assert.rejects(
-    invokeGateway(CONFIG, REQUEST, () => client),
+    invokeGateway(CONFIG, REQUEST, undefined, () => client),
     (err) =>
       err.name === "GatewayFunctionError" && /Unhandled/.test(err.message),
   );
@@ -97,7 +103,7 @@ test("a FunctionError reply is an error", async () => {
 test("a reply without text is an error", async () => {
   const client = stubClient(reply({}));
   await assert.rejects(
-    invokeGateway(CONFIG, REQUEST, () => client),
+    invokeGateway(CONFIG, REQUEST, undefined, () => client),
     /no text/,
   );
 });
@@ -106,7 +112,7 @@ test("a client failure propagates", async () => {
   const failure = Object.assign(new Error("denied"), { name: "AccessDenied" });
   const client = stubClient(failure);
   await assert.rejects(
-    invokeGateway(CONFIG, REQUEST, () => client),
+    invokeGateway(CONFIG, REQUEST, undefined, () => client),
     failure,
   );
   assert.equal(client.destroyed, true);
@@ -122,6 +128,7 @@ test("an unparseable, null or empty gateway reply is an error", async () => {
       invokeGateway(
         { function: "f", region: "r", timeoutSeconds: 60 },
         { system: "s", prompt: "p" },
+        undefined,
         () => client,
       ),
       /no text/,

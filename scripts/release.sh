@@ -133,8 +133,8 @@ _run_release_check() {
 
 _run_tests() {
   (cd "$REPO_ROOT" && npm test)
-  (cd "$REPO_ROOT" && npx eslint .)
-  (cd "$REPO_ROOT" && npx prettier --check .)
+  (cd "$REPO_ROOT" && npm run lint)
+  (cd "$REPO_ROOT" && npm run format:check)
 }
 
 _is_bumped() {

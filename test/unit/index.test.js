@@ -82,13 +82,18 @@ async function waitFor(predicate, timeoutMs) {
   }
 }
 
-function buildHome() {
+function buildHome(extraConfig = {}) {
   const home = fs.mkdtempSync(path.join(os.tmpdir(), "catchup-index-"));
   const dir = path.join(home, "packages", "pkg");
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(
     path.join(dir, "config.json"),
-    JSON.stringify({ provider: "lambda", function: "gw", region: "us-east-1" }),
+    JSON.stringify({
+      provider: "lambda",
+      function: "gw",
+      region: "us-east-1",
+      ...extraConfig,
+    }),
   );
   fs.mkdirSync(path.join(home, "logs"));
   const db = new DatabaseSync(path.join(home, "logs", "alice.sqlite3"));
@@ -115,13 +120,25 @@ async function runWithStubbedLambda(
   command,
   args,
   body = { text: "the answer" },
+  { config, hang = false } = {},
 ) {
-  const { home, dir } = buildHome();
+  const { home, dir } = buildHome(config);
   const { LambdaClient } = require("@aws-sdk/client-lambda");
   const originalSend = LambdaClient.prototype.send;
   const payloads = [];
-  LambdaClient.prototype.send = async function (invoke) {
+  LambdaClient.prototype.send = async function (invoke, options) {
     payloads.push(JSON.parse(invoke.input.Payload));
+    if (hang) {
+      const { abortSignal } = options;
+      await new Promise((_, reject) => {
+        const abort = () =>
+          reject(Object.assign(new Error("aborted"), { name: "AbortError" }));
+        if (abortSignal.aborted) {
+          abort();
+        }
+        abortSignal.addEventListener("abort", abort);
+      });
+    }
     return { Payload: Buffer.from(JSON.stringify(body)) };
   };
   try {
@@ -179,6 +196,14 @@ test("a cut reply carries the notice, an intact one does not", async () => {
     const whole = await runWithStubbedLambda(command, args);
     assert.ok(!whole.sent.includes(notice), command);
   }
+});
+
+test("a model call past timeoutSeconds names the setting", async () => {
+  const { sent } = await runWithStubbedLambda("summarize", ["24h"], undefined, {
+    config: { timeoutSeconds: 0.05 },
+    hang: true,
+  });
+  assert.deepEqual(sent, ["No reply within 0.05 seconds (timeoutSeconds)"]);
 });
 
 test("an ask with no question reports its usage", async () => {
