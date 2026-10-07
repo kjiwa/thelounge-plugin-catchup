@@ -45,6 +45,8 @@ function loadLines(db, { network, chan, spec, config }) {
   return { window, lines };
 }
 
+const CUT_NOTICE = "(Reply cut at the output limit.)";
+
 // The lambda provider bypasses the AI SDK so it is never loaded on that path.
 async function complete(config, request) {
   if (config.provider === "lambda") {
@@ -70,7 +72,7 @@ async function loadAndComplete(deps, publicClient, target, spec) {
     return undefined;
   }
   const limited = limitInput(loaded.lines);
-  const text = await complete(
+  const { text, cut } = await complete(
     deps.config,
     spec.buildRequest({
       lines: limited.lines,
@@ -80,7 +82,11 @@ async function loadAndComplete(deps, publicClient, target, spec) {
       timeZone: deps.config.timeZone,
     }),
   );
-  return { window: loaded.window, limited, text };
+  return {
+    window: loaded.window,
+    limited,
+    text: cut ? `${text}\n${CUT_NOTICE}` : text,
+  };
 }
 
 function headerFor(title, deps, chan, { window, limited }) {

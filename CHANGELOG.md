@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+A reply that hits the model's output limit ends with `(Reply cut at the output limit.)` instead of reading as complete. The gateway Lambda reports this as `cut`; replies from an older gateway never show the notice.
+
 ## 0.5.0
 
 Adds `/ask [window] <question>` and `/ask help`: the model answers from the window's log only, citing nick and time. Without a window it covers the last `maxWindowHours`, and `since` is a window only before `HH:MM`. The reply has a header and the answer, without MENTIONS or GAPS.

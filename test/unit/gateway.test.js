@@ -33,12 +33,24 @@ function reply(body, extra = {}) {
 
 test("invokes the function with {system, prompt} and returns text", async () => {
   const client = stubClient(reply({ text: "summary" }));
-  const text = await invokeGateway(CONFIG, REQUEST, () => client);
-  assert.equal(text, "summary");
+  const result = await invokeGateway(CONFIG, REQUEST, () => client);
+  assert.deepEqual(result, { text: "summary", cut: false });
   assert.equal(client.calls[0].input.FunctionName, "gw");
   assert.deepEqual(JSON.parse(client.calls[0].input.Payload), REQUEST);
   assert.ok(client.calls[0].options.abortSignal);
   assert.equal(client.destroyed, true);
+});
+
+test("cut is true only for a boolean true", async () => {
+  for (const [cut, expected] of [
+    [true, true],
+    ["true", false],
+    [1, false],
+  ]) {
+    const client = stubClient(reply({ text: "t", cut }));
+    const result = await invokeGateway(CONFIG, REQUEST, () => client);
+    assert.equal(result.cut, expected);
+  }
 });
 
 test("the client targets the region with the dual-stack endpoint", async () => {
