@@ -15,6 +15,8 @@ test("bedrock config falls back to AWS_REGION and defaults the window", () => {
     model: "m",
     region: "us-west-2",
     maxWindowHours: 24,
+    maxInputChars: 200000,
+    timeoutSeconds: 60,
   });
   assert.deepEqual(unknownKeys, []);
 });
@@ -70,6 +72,8 @@ test("lambda needs a function and a region, and takes no model", () => {
     function: "gw",
     region: "us-west-2",
     maxWindowHours: 24,
+    maxInputChars: 200000,
+    timeoutSeconds: 60,
   });
   assert.deepEqual(unknownKeys, []);
   const { config: explicit } = validateConfig(
@@ -114,5 +118,64 @@ for (const timeZone of ["Mars/Base", "", 5]) {
   test(`rejects timeZone ${JSON.stringify(timeZone)}`, () => {
     const raw = { provider: "bedrock", model: "m", region: "r", timeZone };
     assert.throws(() => validateConfig(raw, {}), /timeZone/);
+  });
+}
+
+const OPENAI = {
+  provider: "openai-compatible",
+  model: "m",
+  baseURL: "http://127.0.0.1:11434/v1",
+};
+
+test("openai-compatible needs a model and baseURL, and no key", () => {
+  const { config, unknownKeys } = validateConfig(OPENAI, {});
+  assert.deepEqual(config, {
+    ...OPENAI,
+    maxWindowHours: 24,
+    maxInputChars: 200000,
+    timeoutSeconds: 60,
+  });
+  assert.deepEqual(unknownKeys, []);
+  assert.equal(
+    validateConfig({ ...OPENAI, baseURL: "https://example.com/v1" }, {}).config
+      .baseURL,
+    "https://example.com/v1",
+  );
+});
+
+for (const baseURL of [undefined, "", "not a url", "ftp://host/v1", 5]) {
+  test(`openai-compatible rejects baseURL ${JSON.stringify(baseURL)}`, () => {
+    assert.throws(() => validateConfig({ ...OPENAI, baseURL }, {}), /baseURL/);
+  });
+}
+
+test("openai-compatible rejects a missing model", () => {
+  const { model, ...raw } = OPENAI;
+  assert.equal(model, "m");
+  assert.throws(() => validateConfig(raw, {}), /model/);
+});
+
+test("maxInputChars and timeoutSeconds are kept on every provider", () => {
+  const lambda = { provider: "lambda", function: "gw", region: "r" };
+  const { config, unknownKeys } = validateConfig(
+    { ...lambda, maxInputChars: 4000, timeoutSeconds: 2.5 },
+    {},
+  );
+  assert.equal(config.maxInputChars, 4000);
+  assert.equal(config.timeoutSeconds, 2.5);
+  assert.deepEqual(unknownKeys, []);
+});
+
+for (const [key, value] of [
+  ["maxInputChars", 0],
+  ["maxInputChars", 1.5],
+  ["maxInputChars", "10"],
+  ["timeoutSeconds", 0],
+  ["timeoutSeconds", -1],
+  ["timeoutSeconds", "60"],
+]) {
+  test(`rejects ${key} ${JSON.stringify(value)}`, () => {
+    const raw = { ...OPENAI, [key]: value };
+    assert.throws(() => validateConfig(raw, {}), new RegExp(key));
   });
 }
