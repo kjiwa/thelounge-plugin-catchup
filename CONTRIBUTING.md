@@ -20,10 +20,11 @@ CI runs these on Node 22.17, the supported minimum, and 24.
 Add a `## <version>` section to `CHANGELOG.md` in a PR and merge it, then run from a clean, up-to-date `main`:
 
 ```sh
-sh scripts/release.sh [--dry-run] <version>
+gh extension install kjiwa/gh-cut
+gh cut [--dry-run] <version>
 ```
 
-The script bumps `package.json` and `package-lock.json` through a squash-merged PR, waits for checks, tags the merge commit, and creates the GitHub release with the matching CHANGELOG section as its notes. Publishing the release triggers `.github/workflows/publish.yml`, which verifies the tag and runs `npm publish` through npm trusted publishing (no token).
+[gh-cut](https://github.com/kjiwa/gh-cut) bumps `package.json` and `package-lock.json` (see `scripts/release-hooks.sh`) through a squash-merged PR, waits for checks, tags the merge commit, and creates the GitHub release with the matching CHANGELOG section as its notes. Publishing the release triggers `.github/workflows/publish.yml`, which verifies the tag and runs `npm publish` through npm trusted publishing (no token).
 
 ## Scope
 
