@@ -207,9 +207,19 @@ function installTarball(home, env) {
   const tarball = path.join(tarballs, fs.readdirSync(tarballs)[0]);
   const packages = path.join(home, "packages");
   fs.mkdirSync(packages, { recursive: true });
+  // `thelounge install` uses yarn 1, which skips peer dependencies; npm installs
+  // them by default and would hide a missing direct dependency.
   execFileSync(
     "npm",
-    ["install", "--prefix", packages, "--no-audit", "--no-fund", tarball],
+    [
+      "install",
+      "--prefix",
+      packages,
+      "--no-audit",
+      "--no-fund",
+      "--legacy-peer-deps",
+      tarball,
+    ],
     { env, stdio: "ignore" },
   );
 }
