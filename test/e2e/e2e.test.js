@@ -205,21 +205,11 @@ function installTarball(home, env) {
     stdio: "ignore",
   });
   const tarball = path.join(tarballs, fs.readdirSync(tarballs)[0]);
-  const packages = path.join(home, "packages");
-  fs.mkdirSync(packages, { recursive: true });
-  // `thelounge install` uses yarn 1, which skips peer dependencies; npm installs
-  // them by default and would hide a missing direct dependency.
+  execFileSync("tar", ["-xzf", tarball, "-C", tarballs]);
+  // Installs the way users do, through The Lounge's bundled yarn 1.
   execFileSync(
-    "npm",
-    [
-      "install",
-      "--prefix",
-      packages,
-      "--no-audit",
-      "--no-fund",
-      "--legacy-peer-deps",
-      tarball,
-    ],
+    process.execPath,
+    [LOUNGE, "install", `file:${path.join(tarballs, "package")}`],
     { env, stdio: "ignore" },
   );
 }
@@ -287,6 +277,9 @@ async function runScenario(t, scenario) {
   });
 
   const stubUrl = `http://127.0.0.1:${stub.address().port}`;
+  // `thelounge install` does nothing, and exits 0, without a config.js.
+  const port = await freePort();
+  fixture.writeConfig(home, port);
   installTarball(home, env);
   writePluginConfig(
     home,
@@ -294,8 +287,6 @@ async function runScenario(t, scenario) {
       ? scenario.config(stubUrl)
       : scenario.config,
   );
-  const port = await freePort();
-  fixture.writeConfig(home, port);
 
   let output = "";
   server = spawn(process.execPath, [LOUNGE, "start"], {

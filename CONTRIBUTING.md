@@ -11,7 +11,7 @@ npm run format:check
 
 CI runs these on Node 22.17, the supported minimum, and 24.
 
-`npm run test:e2e` starts a pinned The Lounge on a fixture home with the packed tarball installed under `packages/`. Run it when a change touches the plugin entry point, its packaging, or `test/e2e/`. Fixtures are synthetic; never commit real channel logs.
+`npm run test:e2e` starts a pinned The Lounge on a fixture home with the packed tarball installed through `thelounge install`. Run it when a change touches the plugin entry point, its packaging, or `test/e2e/`. Fixtures are synthetic; never commit real channel logs.
 
 `scripts/pack-allowlist.txt` lists the files `npm pack` must ship. CI fails when the pack contents differ; update the list in the same change that adds or removes a shipped file.
 
