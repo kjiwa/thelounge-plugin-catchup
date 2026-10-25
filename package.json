@@ -59,6 +59,6 @@
     "@aws-sdk/client-lambda": "3.1146.0",
     "@aws-sdk/credential-providers": "3.1146.0",
     "ai": "7.0.128",
-    "zod": "4.6.5"
+    "zod": "4.6.7"
   }
 }
