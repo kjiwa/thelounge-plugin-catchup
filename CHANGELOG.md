@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1
+
+`thelounge install` now installs `zod`, which the AI SDK needs and yarn 1 skips as a peer dependency, so `bedrock`, `anthropic` and `openai-compatible` no longer fail on the first `/summarize` or `/ask` with "Cannot find package 'zod'".
+
 ## 0.6.0
 
 Adds the `openai-compatible` provider for Ollama, llama.cpp, OpenRouter and other OpenAI-style servers, with `baseURL` and an optional `OPENAI_COMPATIBLE_API_KEY`. Adds `maxInputChars` (default 200000) and `timeoutSeconds` (default 60), which apply to every provider. A model call that exceeds `timeoutSeconds` now says so in the channel, and an empty model reply is reported as a failure instead of showing a bare header.
