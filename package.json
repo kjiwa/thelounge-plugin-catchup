@@ -60,5 +60,9 @@
     "@aws-sdk/credential-providers": "3.1161.0",
     "ai": "7.0.159",
     "zod": "4.6.7"
+  },
+  "overrides": {
+    "node-forge": "1.4.1",
+    "qs": "6.16.1"
   }
 }
