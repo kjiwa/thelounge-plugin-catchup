@@ -58,7 +58,7 @@
     "@ai-sdk/openai-compatible": "3.0.82",
     "@aws-sdk/client-lambda": "3.1161.0",
     "@aws-sdk/credential-providers": "3.1161.0",
-    "ai": "7.0.159",
+    "ai": "7.0.164",
     "zod": "4.6.7"
   },
   "overrides": {
