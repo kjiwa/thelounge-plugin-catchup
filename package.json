@@ -53,7 +53,7 @@
     "thelounge": "4.5.2"
   },
   "dependencies": {
-    "@ai-sdk/amazon-bedrock": "5.0.123",
+    "@ai-sdk/amazon-bedrock": "5.0.134",
     "@ai-sdk/anthropic": "4.0.98",
     "@ai-sdk/openai-compatible": "3.0.86",
     "@aws-sdk/client-lambda": "3.1164.0",
